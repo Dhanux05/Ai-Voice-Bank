@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>धन स्थानांतरण - एआई वॉयस बैंकिंग</title>
+  <link rel="stylesheet" href="style2.css">
+  <style>
+    .transfer-icon {
+      font-size: 2rem;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-animation"></div>
+  <div class="container">
+    <h1 class="title">
+      <span class="transfer-icon">💸</span> धन स्थानांतरण
+    </h1>
+    <p class="subtitle">सुरक्षित रूप से पैसा भेजें</p>
+
+    <form class="form-card fade-in" id="transferForm">
+      <div class="input-group">
+        <input type="text" id="fromAccount" maxlength="12" pattern="[0-9]{12}" required>
+        <label>से खाता संख्या</label>
+      </div>
+      
+      <div class="input-group">
+        <input type="text" id="toAccount" maxlength="12" pattern="[0-9]{12}" required>
+        <label>को खाता संख्या</label>
+      </div>
+      
+      <div class="input-group">
+        <input type="number" id="transferAmount" required>
+        <label>राशि (₹)</label>
+      </div>
+
+      <div class="input-group">
+        <input type="password" id="pin" maxlength="4" pattern="[0-9]{4}" required>
+        <label>PIN (4 अंक)</label>
+      </div>
+
+      <button type="submit" class="btn-submit" style="background: linear-gradient(135deg, #32CD32, #228B22);">💰 धन स्थानांतरण करें</button>
+      <a href="index.html" class="btn-back">⬅️ मेनू पर वापस जाएँ</a>
+    </form>
+  </div>
+
+  <script>
+    const form = document.getElementById("transferForm");
+    let recognition = null;
+    let isListening = false;
+    let voiceStep = 'fromAccount'; // 'fromAccount', 'toAccount', 'amount', 'pin'
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = false;
+      recognition.lang = 'hi-IN';
+    }
+
+    function getVoices() {
+      return speechSynthesis.getVoices();
+    }
+    
+    function speak(text) {
+      const voices = getVoices();
+      const utterance = new SpeechSynthesisUtterance(text);
+      
+      // Try to find Hindi voice - check multiple patterns
+      const hindiVoice = voices.find(v => 
+        v.lang.toLowerCase().startsWith('hi') || 
+        v.lang.toLowerCase().includes('hindi') || 
+        v.name.toLowerCase().includes('hindi') ||
+        v.lang === 'hi-IN' ||
+        v.lang === 'hi'
+      );
+      
+      if (hindiVoice) {
+        utterance.lang = 'hi-IN';
+        utterance.voice = hindiVoice;
+        utterance.text = text;
+        console.log("✅ Using Hindi voice:", hindiVoice.name, hindiVoice.lang);
+      } else {
+        console.log("⚠️ Hindi voice not found. Available voices:", voices.map(v => v.lang + ' - ' + v.name).slice(0, 5));
+        utterance.lang = 'hi-IN';
+        utterance.text = text;
+        console.log("🔊 Attempting to speak Hindi text with hi-IN language code");
+      }
+      
+      utterance.rate = 0.9;
+      utterance.pitch = 1;
+      utterance.volume = 1;
+      speechSynthesis.speak(utterance);
+    }
+
+    function startListening() {
+      if (!recognition) return;
+      try {
+        recognition.stop();
+      } catch(e) {}
+      
+      recognition.onresult = (event) => {
+        if (event.results.length > 0) {
+          const command = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
+          console.log("Heard:", command);
+          handleVoiceCommand(command);
+        }
+      };
+      
+      recognition.onerror = (event) => {
+        if (event.error === 'not-allowed') {
+          alert("माइक्रोफोन अनुमति अस्वीकृत");
+          isListening = false;
+        } else if (event.error !== 'aborted' && event.error !== 'no-speech') {
+          setTimeout(() => {
+            if (isListening) {
+              try { recognition.start(); } catch(e) {}
+            }
+          }, 1000);
+        }
+      };
+      
+      recognition.onend = () => {
+        if (isListening) {
+          setTimeout(() => {
+            try { recognition.start(); } catch(e) {}
+          }, 500);
+        }
+      };
+      
+      try {
+        recognition.start();
+        isListening = true;
+      } catch(e) {
+        console.log("Error:", e);
+      }
+    }
+
+    function handleVoiceCommand(command) {
+      const fromInput = document.getElementById("fromAccount");
+      const toInput = document.getElementById("toAccount");
+      const amountInput = document.getElementById("transferAmount");
+      const pinInput = document.getElementById("pin");
+
+      if (command.includes('वापस') || command.includes('back') || command.includes('undo')) {
+        window.location.href = "index.html";
+        return;
+      }
+
+      if (voiceStep === 'fromAccount') {
+        const accountMatch = command.match(/(?:से|खाता|नंबर|account)\s*(\d+)|(\d{12})|(\d{4,12})/);
+        if (accountMatch) {
+          const accNum = accountMatch[1] || accountMatch[2] || accountMatch[3];
+          if (accNum && accNum.length >= 4 && accNum.length <= 12) {
+            fromInput.value = accNum;
+            speak(`से खाता ${accNum} दर्ज किया गया। कृपया प्राप्तकर्ता खाता संख्या बताएं।`);
+            voiceStep = 'toAccount';
+          }
+        }
+      } else if (voiceStep === 'toAccount') {
+        const accountMatch = command.match(/(?:को|प्राप्तकर्ता|खाता|नंबर|to|account)\s*(\d+)|(\d{12})|(\d{4,12})/);
+        if (accountMatch) {
+          const accNum = accountMatch[1] || accountMatch[2] || accountMatch[3];
+          if (accNum && accNum.length >= 4 && accNum.length <= 12) {
+            toInput.value = accNum;
+            speak(`को खाता ${accNum} दर्ज किया गया। कृपया स्थानांतरण राशि बताएं।`);
+            voiceStep = 'amount';
+          }
+        }
+      } else if (voiceStep === 'amount') {
+        const amountMatch = command.match(/(\d+)(?:\s*रुपये|rupees|rs)?/);
+        if (amountMatch) {
+          const amount = parseInt(amountMatch[1]);
+          amountInput.value = amount;
+          speak(`${amount} रुपये। कृपया अपना PIN बताएं।`);
+          voiceStep = 'pin';
+        }
+      } else if (voiceStep === 'pin') {
+        const pinMatch = command.match(/(\d{4})/);
+        if (pinMatch) {
+          const pin = pinMatch[1];
+          pinInput.value = pin;
+          speak(`PIN दर्ज किया गया। स्थानांतरण प्रसंस्करण।`);
+          setTimeout(() => form.dispatchEvent(new Event('submit')), 1000);
+        }
+      }
+    }
+
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        speak("धन स्थानांतरण पृष्ठ पर आपका स्वागत है। कृपया पहले अपनी खाता संख्या बताएं।");
+        startListening();
+      }, 1000);
+    });
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (recognition && isListening) {
+        recognition.stop();
+        isListening = false;
+      }
+
+      const from_account = parseInt(document.getElementById("fromAccount").value.trim(), 10);
+      const to_account = parseInt(document.getElementById("toAccount").value.trim(), 10);
+      const amount = parseFloat(document.getElementById("transferAmount").value);
+      const pin = document.getElementById("pin").value;
+
+      if (!from_account || !to_account || !amount || !pin) {
+        speak("कृपया सभी फ़ील्ड भरें");
+        return;
+      }
+
+      if (from_account === to_account) {
+        speak("से और को खाता समान नहीं हो सकते");
+        alert("से और को खाता समान नहीं हो सकते");
+        return;
+      }
+
+      if (pin.length !== 4 || !/^\d+$/.test(pin)) {
+        speak("PIN बिल्कुल 4 अंक होना चाहिए");
+        return;
+      }
+
+      speak("आपका स्थानांतरण प्रसंस्करण किया जा रहा है। कृपया प्रतीक्षा करें।");
+
+      try {
+        const response = await fetch("http://localhost:5000/transfer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ from_account, to_account, amount, pin })
+        });
+
+        const data = await response.json();
+        
+        if (response.ok) {
+          speak(`स्थानांतरण सफल! आपका नया बैलेंस ${data.sender_balance_after} रुपये है।`);
+          
+          // Store transaction data for receipt
+          const transactionData = {
+            type: 'Transfer',
+            type_hi: 'स्थानांतरण',
+            from_account: from_account,
+            to_account: to_account,
+            from_name: data.from_name,
+            to_name: data.to_name,
+            amount: amount,
+            sender_balance_after: data.sender_balance_after,
+            transaction_id: generateTransactionId()
+          };
+          
+          // Show success message with download option
+          showSuccessMessage(transactionData);
+          form.reset();
+          voiceStep = 'fromAccount';
+        } else {
+          speak(data.message || "स्थानांतरण विफल। कृपया पुनः प्रयास करें।");
+          alert(data.message || "स्थानांतरण विफल");
+          voiceStep = 'fromAccount';
+        }
+      } catch (error) {
+        speak("सर्वर पहुंच योग्य नहीं है। कृपया सुनिश्चित करें कि सर्वर चल रहा है।");
+        alert("❌ सर्वर पहुंच योग्य नहीं है। कृपया सुनिश्चित करें कि सर्वर चल रहा है।");
+        console.error("Error:", error);
+      }
+    });
+
+    // Generate Transaction ID
+    function generateTransactionId() {
+      const timestamp = Date.now();
+      const random = Math.floor(Math.random() * 10000);
+      return `TXN${timestamp}${random}`;
+    }
+
+    // Store current transaction data
+    let currentTransactionData = null;
+
+    // Show Success Message with Download Option
+    function showSuccessMessage(transactionData) {
+      currentTransactionData = transactionData;
+      
+      const message = `
+        <div style="text-align: center; padding: 20px;">
+          <h2 style="color: #32CD32; margin-bottom: 15px; background: #32CD32; color: white; padding: 15px; border-radius: 10px 10px 0 0; margin: -30px -30px 20px -30px;">✅ स्थानांतरण सफल!</h2>
+          <p><strong>से खाता:</strong> ****${String(transactionData.from_account).slice(-4)}</p>
+          <p><strong>को खाता:</strong> ****${String(transactionData.to_account).slice(-4)}</p>
+          <p><strong>राशि:</strong> ₹${transactionData.amount.toLocaleString('en-IN')}</p>
+          <p><strong>स्थानांतरण के बाद बैलेंस:</strong> ₹${transactionData.sender_balance_after.toLocaleString('en-IN')}</p>
+          <p><strong>समय:</strong> ${new Date().toLocaleString('hi-IN')}</p>
+          <div style="margin-top: 20px;">
+            <button id="downloadReceiptBtn" 
+                    style="background: #4facfe; color: white; border: none; padding: 12px 30px; border-radius: 5px; font-size: 16px; cursor: pointer; margin: 5px;">
+              📥 रसीद डाउनलोड करें
+            </button>
+            <button id="closeModalBtn" 
+                    style="background: #6c757d; color: white; border: none; padding: 12px 30px; border-radius: 5px; font-size: 16px; cursor: pointer; margin: 5px;">
+              बंद करें
+            </button>
+          </div>
+        </div>
+      `;
+      
+      const modal = document.createElement('div');
+      modal.id = 'successModal';
+      modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: center; justify-content: center;';
+      
+      const modalContent = document.createElement('div');
+      modalContent.style.cssText = 'background: #2a2a2a; padding: 0; border-radius: 15px; max-width: 500px; width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.3); color: white;';
+      modalContent.innerHTML = message;
+      
+      modal.appendChild(modalContent);
+      document.body.appendChild(modal);
+      
+      setTimeout(() => {
+        const downloadBtn = document.getElementById('downloadReceiptBtn');
+        const closeBtn = document.getElementById('closeModalBtn');
+        
+        if (downloadBtn) {
+          downloadBtn.addEventListener('click', () => {
+            if (currentTransactionData) {
+              downloadReceipt(currentTransactionData);
+            }
+          });
+        }
+        
+        if (closeBtn) {
+          closeBtn.addEventListener('click', () => {
+            closeSuccessMessage();
+          });
+        }
+      }, 100);
+      
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          closeSuccessMessage();
+        }
+      });
+    }
+
+    function closeSuccessMessage() {
+      const modal = document.getElementById('successModal');
+      if (modal) {
+        modal.remove();
+      }
+    }
+
+    function downloadReceipt(transactionData) {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('hi-IN', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+      const timeStr = now.toLocaleTimeString('hi-IN', { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit' 
+      });
+
+      const receiptHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Transfer Receipt - ${transactionData.transaction_id}</title>
+  <style>
+    @media print { body { margin: 0; } .no-print { display: none; } }
+    body { font-family: 'Arial', sans-serif; max-width: 600px; margin: 20px auto; padding: 30px; background: #f5f5f5; }
+    .receipt-container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .header { text-align: center; border-bottom: 3px solid #32CD32; padding-bottom: 20px; margin-bottom: 30px; }
+    .bank-name { font-size: 28px; font-weight: bold; color: #32CD32; margin-bottom: 5px; }
+    .bank-tagline { font-size: 14px; color: #666; }
+    .receipt-title { text-align: center; font-size: 24px; font-weight: bold; color: #32CD32; margin: 20px 0; }
+    .transaction-info { margin: 25px 0; }
+    .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #eee; }
+    .info-label { font-weight: bold; color: #333; }
+    .info-value { color: #666; text-align: right; }
+    .amount-row { background: #f0fff0; padding: 15px; border-radius: 5px; margin: 20px 0; }
+    .amount-label { font-size: 18px; font-weight: bold; color: #32CD32; }
+    .amount-value { font-size: 24px; font-weight: bold; color: #32CD32; margin-top: 5px; }
+    .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 2px dashed #ccc; color: #999; font-size: 12px; }
+    .transaction-id { background: #fff3cd; padding: 10px; border-radius: 5px; text-align: center; margin: 20px 0; font-family: 'Courier New', monospace; font-weight: bold; color: #856404; }
+  </style>
+</head>
+<body>
+  <div class="receipt-container">
+    <div class="header">
+      <div class="bank-name">🤖 AI Voice Banking</div>
+      <div class="bank-tagline">आपका स्मार्ट बैंकिंग समाधान</div>
+    </div>
+    <div class="receipt-title">${transactionData.type_hi} रसीद</div>
+    <div class="transaction-id">लेनदेन ID: ${transactionData.transaction_id}</div>
+    <div class="transaction-info">
+      <div class="info-row"><span class="info-label">दिनांक:</span><span class="info-value">${dateStr}</span></div>
+      <div class="info-row"><span class="info-label">समय:</span><span class="info-value">${timeStr}</span></div>
+      <div class="info-row"><span class="info-label">से खाता:</span><span class="info-value">${transactionData.from_account}</span></div>
+      <div class="info-row"><span class="info-label">से नाम:</span><span class="info-value">${transactionData.from_name}</span></div>
+      <div class="info-row"><span class="info-label">को खाता:</span><span class="info-value">${transactionData.to_account}</span></div>
+      <div class="info-row"><span class="info-label">को नाम:</span><span class="info-value">${transactionData.to_name}</span></div>
+    </div>
+    <div class="amount-row">
+      <div class="amount-label">स्थानांतरण राशि</div>
+      <div class="amount-value">₹${transactionData.amount.toLocaleString('en-IN')}</div>
+    </div>
+    <div class="info-row">
+      <span class="info-label">स्थानांतरण के बाद आपका बैलेंस:</span>
+      <span class="info-value" style="font-weight: bold; color: #32CD32;">₹${transactionData.sender_balance_after.toLocaleString('en-IN')}</span>
+    </div>
+    <div class="footer">
+      <p>धन्यवाद! आपका लेनदेन सफल रहा।</p>
+      <p>यह एक कंप्यूटर जनित रसीद है और हस्ताक्षर की आवश्यकता नहीं है।</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+      const blob = new Blob([receiptHTML], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Receipt_${transactionData.transaction_id}_Transfer.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      closeSuccessMessage();
+      speak("रसीद सफलतापूर्वक डाउनलोड की गई।");
+    }
+
+    // Microphone button
+    const micBtn = document.createElement('button');
+    micBtn.innerHTML = '🎤';
+    micBtn.style.cssText = 'position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px; border-radius: 50%; background: #32CD32; color: white; border: none; font-size: 24px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 1000;';
+    micBtn.onclick = () => {
+      if (isListening) {
+        recognition.stop();
+        isListening = false;
+        micBtn.style.background = '#32CD32';
+      } else {
+        speak("सुन रहा हूं। कृपया अपने खाता विवरण बताएं।");
+        micBtn.style.background = '#ff6b6b';
+        setTimeout(() => startListening(), 1000);
+      }
+    };
+    document.body.appendChild(micBtn);
+  </script>
+</body>
+</html>
+
+

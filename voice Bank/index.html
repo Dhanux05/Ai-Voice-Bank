@@ -43,7 +43,7 @@
         <button class="btn btn-blue" id="btnRegister" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;">
           <span>📝</span> <span id="registerText">Register</span>
         </button>
-        <button class="btn btn-green" id="btnLogin" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;">
+        <button class="btn btn-blue" id="btnLogin" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;">
           <span>🔐</span> <span id="loginText">Login</span>
         </button>
         <button class="btn btn-dark" id="btnBackLang" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;">
@@ -59,7 +59,7 @@
         <button class="btn btn-green" id="btnDeposit">💰 Deposit</button>
         <button class="btn btn-red" id="btnWithdraw">📉 Withdraw</button>
         <button class="btn btn-blue" id="btnBalance">📊 Balance</button>
-        <button class="btn" id="btnTransfer" style="background: white; color: #333; border: 2px solid #ddd;">💸 Transfer</button>
+        <button class="btn btn-transfer" id="btnTransfer">💸 Transfer</button>
         <button class="btn btn-dark" id="btnExit">❌ Exit</button>
       </div>
     </div>
@@ -462,8 +462,7 @@
         btnBalance.innerText = "📊 ಬ್ಯಾಲೆನ್ಸ್ ನೋಡಿ";
         btnBalance.className = "btn btn-blue kannada-text";
         btnTransfer.innerText = "💸 ವರ್ಗಾವಣೆ";
-        btnTransfer.className = "btn kannada-text";
-        btnTransfer.style.cssText = "background: white; color: #333; border: 2px solid #ddd;";
+        btnTransfer.className = "btn btn-transfer kannada-text";
         btnExit.innerText = "❌ ನಿರ್ಗಮಿಸಿ";
         btnExit.className = "btn btn-dark kannada-text";
 
@@ -486,8 +485,7 @@
         btnBalance.innerText = "📊 बैलेंस देखें";
         btnBalance.className = "btn btn-blue";
         btnTransfer.innerText = "💸 स्थानांतरण";
-        btnTransfer.className = "btn";
-        btnTransfer.style.cssText = "background: white; color: #333; border: 2px solid #ddd;";
+        btnTransfer.className = "btn btn-transfer";
         btnExit.innerText = "❌ बाहर जाएँ";
         btnExit.className = "btn btn-dark";
 
@@ -510,8 +508,7 @@
         btnBalance.innerText = "📊 Balance";
         btnBalance.className = "btn btn-blue";
         btnTransfer.innerText = "💸 Transfer";
-        btnTransfer.className = "btn";
-        btnTransfer.style.cssText = "background: white; color: #333; border: 2px solid #ddd;";
+        btnTransfer.className = "btn btn-transfer";
         btnExit.innerText = "❌ Exit";
         btnExit.className = "btn btn-dark";
 
