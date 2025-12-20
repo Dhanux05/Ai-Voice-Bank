@@ -235,14 +235,333 @@
     
     if (response.ok && data.new_balance !== undefined) {
       speak(`Deposit successful! Your new balance is ${data.new_balance} rupees.`);
-      alert(
-        `Deposit successful!\n\nAccount: ${data.account_number}\nName: ${data.full_name}\nBranch: ${data.branch_name}\nOld Balance: ₹${data.old_balance}\nNew Balance: ₹${data.new_balance}`
-      );
+      
+      // Store transaction data for receipt
+      const transactionData = {
+        type: 'Deposit',
+        account_number: data.account_number,
+        full_name: data.full_name,
+        branch_name: data.branch_name,
+        amount: deposit_amount,
+        old_balance: data.old_balance,
+        new_balance: data.new_balance,
+        transaction_id: generateTransactionId()
+      };
+      
+      // Show success message with download option
+      showSuccessMessage(transactionData);
     } else {
       speak(data.message || "Deposit failed. Please try again.");
       alert(data.message);
     }
   });
+
+  // Generate Transaction ID
+  function generateTransactionId() {
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 10000);
+    return `TXN${timestamp}${random}`;
+  }
+
+  // Store current transaction data
+  let currentTransactionData = null;
+
+  // Show Success Message with Download Option
+  function showSuccessMessage(transactionData) {
+    // Store transaction data globally
+    currentTransactionData = transactionData;
+    
+    const message = `
+      <div style="text-align: center; padding: 20px;">
+        <h2 style="color: #32CD32; margin-bottom: 15px;">✅ Deposit Successful!</h2>
+        <p><strong>Account:</strong> ${transactionData.account_number}</p>
+        <p><strong>Name:</strong> ${transactionData.full_name}</p>
+        <p><strong>Branch:</strong> ${transactionData.branch_name}</p>
+        <p><strong>Deposit Amount:</strong> ₹${transactionData.amount.toLocaleString('en-IN')}</p>
+        <p><strong>Old Balance:</strong> ₹${transactionData.old_balance.toLocaleString('en-IN')}</p>
+        <p><strong>New Balance:</strong> ₹${transactionData.new_balance.toLocaleString('en-IN')}</p>
+        <div style="margin-top: 20px;">
+          <button id="downloadReceiptBtn" 
+                  style="background: #4facfe; color: white; border: none; padding: 12px 30px; border-radius: 5px; font-size: 16px; cursor: pointer; margin: 5px;">
+            📥 Download Receipt
+          </button>
+          <button id="closeModalBtn" 
+                  style="background: #6c757d; color: white; border: none; padding: 12px 30px; border-radius: 5px; font-size: 16px; cursor: pointer; margin: 5px;">
+            Close
+          </button>
+        </div>
+      </div>
+    `;
+    
+    // Create modal overlay
+    const modal = document.createElement('div');
+    modal.id = 'successModal';
+    modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: center; justify-content: center;';
+    
+    const modalContent = document.createElement('div');
+    modalContent.style.cssText = 'background: white; padding: 30px; border-radius: 15px; max-width: 500px; width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.3);';
+    modalContent.innerHTML = message;
+    
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
+    
+    // Add event listeners after DOM is ready
+    setTimeout(() => {
+      const downloadBtn = document.getElementById('downloadReceiptBtn');
+      const closeBtn = document.getElementById('closeModalBtn');
+      
+      if (downloadBtn) {
+        downloadBtn.addEventListener('click', () => {
+          if (currentTransactionData) {
+            downloadReceipt(currentTransactionData);
+          }
+        });
+      }
+      
+      if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+          closeSuccessMessage();
+        });
+      }
+    }, 100);
+    
+    // Close on outside click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        closeSuccessMessage();
+      }
+    });
+  }
+
+  // Close success message
+  function closeSuccessMessage() {
+    const modal = document.getElementById('successModal');
+    if (modal) {
+      modal.remove();
+    }
+  }
+
+  // Download Receipt Function
+  function downloadReceipt(transactionData) {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-IN', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    const timeStr = now.toLocaleTimeString('en-IN', { 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      second: '2-digit' 
+    });
+
+    const receiptHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Transaction Receipt - ${transactionData.transaction_id}</title>
+  <style>
+    @media print {
+      body { margin: 0; }
+      .no-print { display: none; }
+    }
+    body {
+      font-family: 'Arial', sans-serif;
+      max-width: 600px;
+      margin: 20px auto;
+      padding: 30px;
+      background: #f5f5f5;
+    }
+    .receipt-container {
+      background: white;
+      padding: 40px;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .header {
+      text-align: center;
+      border-bottom: 3px solid #4facfe;
+      padding-bottom: 20px;
+      margin-bottom: 30px;
+    }
+    .bank-name {
+      font-size: 28px;
+      font-weight: bold;
+      color: #4facfe;
+      margin-bottom: 5px;
+    }
+    .bank-tagline {
+      font-size: 14px;
+      color: #666;
+    }
+    .receipt-title {
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+      color: #32CD32;
+      margin: 20px 0;
+    }
+    .transaction-info {
+      margin: 25px 0;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .info-label {
+      font-weight: bold;
+      color: #333;
+    }
+    .info-value {
+      color: #666;
+      text-align: right;
+    }
+    .amount-row {
+      background: #f0f8ff;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 20px 0;
+    }
+    .amount-label {
+      font-size: 18px;
+      font-weight: bold;
+      color: #4facfe;
+    }
+    .amount-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #32CD32;
+      margin-top: 5px;
+    }
+    .balance-info {
+      background: #f9f9f9;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 20px 0;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 2px dashed #ccc;
+      color: #999;
+      font-size: 12px;
+    }
+    .transaction-id {
+      background: #fff3cd;
+      padding: 10px;
+      border-radius: 5px;
+      text-align: center;
+      margin: 20px 0;
+      font-family: 'Courier New', monospace;
+      font-weight: bold;
+      color: #856404;
+    }
+    .print-btn {
+      text-align: center;
+      margin-top: 20px;
+    }
+    .print-btn button {
+      background: #4facfe;
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .print-btn button:hover {
+      background: #00c6ff;
+    }
+  </style>
+</head>
+<body>
+  <div class="receipt-container">
+    <div class="header">
+      <div class="bank-name">🤖 AI Voice Banking</div>
+      <div class="bank-tagline">Your Smart Banking Solution</div>
+    </div>
+    
+    <div class="receipt-title">${transactionData.type} Receipt</div>
+    
+    <div class="transaction-id">
+      Transaction ID: ${transactionData.transaction_id}
+    </div>
+    
+    <div class="transaction-info">
+      <div class="info-row">
+        <span class="info-label">Date:</span>
+        <span class="info-value">${dateStr}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Time:</span>
+        <span class="info-value">${timeStr}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Account Number:</span>
+        <span class="info-value">${transactionData.account_number}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Account Holder:</span>
+        <span class="info-value">${transactionData.full_name}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Branch:</span>
+        <span class="info-value">${transactionData.branch_name}</span>
+      </div>
+    </div>
+    
+    <div class="amount-row">
+      <div class="amount-label">${transactionData.type} Amount</div>
+      <div class="amount-value">₹${transactionData.amount.toLocaleString('en-IN')}</div>
+    </div>
+    
+    <div class="balance-info">
+      <div class="info-row">
+        <span class="info-label">Previous Balance:</span>
+        <span class="info-value">₹${transactionData.old_balance.toLocaleString('en-IN')}</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Current Balance:</span>
+        <span class="info-value" style="font-weight: bold; color: #32CD32;">₹${transactionData.new_balance.toLocaleString('en-IN')}</span>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <p>This is a computer-generated receipt.</p>
+      <p>Thank you for banking with us!</p>
+      <p style="margin-top: 10px;">For queries, contact: support@aivoicebank.com</p>
+    </div>
+    
+    <div class="print-btn no-print">
+      <button onclick="window.print()">🖨️ Print Receipt</button>
+    </div>
+  </div>
+</body>
+</html>`;
+
+    // Create blob and download
+    const blob = new Blob([receiptHTML], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+      link.download = `Receipt_${transactionData.transaction_id}_${transactionData.type}.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      // Close modal after download
+      closeSuccessMessage();
+      speak("Receipt downloaded successfully.");
+    }
+    
+    // Make downloadReceipt available globally
+    window.downloadReceipt = downloadReceipt;
+    window.closeSuccessMessage = closeSuccessMessage;
 
   // Microphone button
   const micBtn = document.createElement('button');

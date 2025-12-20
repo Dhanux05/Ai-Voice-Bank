@@ -102,9 +102,26 @@
         });
         const data = await response.json();
         if (response.ok) {
-          alert(`निकासी सफल!\n\nखाता: ${data.account_number}\nनाम: ${data.full_name}\nनिकाली गई राशि: ₹${data.withdraw_amount}\nपुराना बैलेंस: ₹${data.old_balance}\nनया बैलेंस: ₹${data.new_balance}`);
+          speak(`निकासी सफल! आपका नया बैलेंस ${data.new_balance} रुपये है।`, 'hi');
+          
+          // Store transaction data for receipt
+          const transactionData = {
+            type: 'Withdrawal',
+            type_hi: 'निकासी',
+            account_number: data.account_number,
+            full_name: data.full_name,
+            branch_name: data.branch_name,
+            amount: data.withdraw_amount,
+            old_balance: data.old_balance,
+            new_balance: data.new_balance,
+            transaction_id: generateTransactionId()
+          };
+          
+          // Show success message with download option
+          showSuccessMessage(transactionData);
           form.reset();
         } else {
+          speak(data.message || "निकासी विफल", 'hi');
           alert(data.message || "निकासी विफल");
         }
       } catch (error) {

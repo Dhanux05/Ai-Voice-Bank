@@ -82,8 +82,14 @@
       recognition.lang = 'kn-IN';
     }
 
+    function getVoices() {
+      return speechSynthesis.getVoices();
+    }
+    
     function speak(text, useEnglish = false) {
+      const voices = getVoices();
       const utterance = new SpeechSynthesisUtterance(text);
+      
       if (useEnglish) {
         utterance.lang = 'en-US';
         // Transliterate Kannada prompts to English for TTS
@@ -103,23 +109,35 @@
           .replace(/ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ/g, 'try again')
           .replace(/ವಿಫಲವಾಗಿದೆ/g, 'failed');
         utterance.text = englishText || text;
+        console.log("⚠️ Using English fallback for Kannada");
       } else {
-        utterance.lang = 'kn-IN';
-        utterance.text = text;
+        // Try to find Kannada voice - check multiple patterns
+        const kannadaVoice = voices.find(v => 
+          v.lang.toLowerCase().startsWith('kn') || 
+          v.lang.toLowerCase().includes('kannada') || 
+          v.name.toLowerCase().includes('kannada') ||
+          v.lang === 'kn-IN' ||
+          v.lang === 'kn'
+        );
+        
+        if (kannadaVoice) {
+          utterance.lang = 'kn-IN';
+          utterance.voice = kannadaVoice;
+          utterance.text = text;
+          console.log("✅ Using Kannada voice:", kannadaVoice.name, kannadaVoice.lang);
+        } else {
+          console.log("⚠️ Kannada voice not found. Available voices:", voices.map(v => v.lang + ' - ' + v.name).slice(0, 5));
+          // Still try to use Kannada language code - browser might have a fallback
+          utterance.lang = 'kn-IN';
+          utterance.text = text; // Keep original Kannada text
+          console.log("🔊 Attempting to speak Kannada text with kn-IN language code");
+        }
       }
+      
       utterance.rate = 0.9;
       utterance.pitch = 1;
-      
-      // Check if Kannada voice is available
-      const voices = speechSynthesis.getVoices();
-      const kannadaVoice = voices.find(v => v.lang.startsWith('kn'));
-      
-      if (!kannadaVoice && !useEnglish) {
-        // Fallback to English if Kannada voice not available
-        speak(text, true);
-        return;
-      }
-      
+      utterance.volume = 1;
+      console.log("🔊 Speaking in Kannada page:", text.substring(0, 50));
       speechSynthesis.speak(utterance);
     }
 
@@ -218,12 +236,188 @@
       const data = await response.json();
       if (response.ok && data.new_balance !== undefined) {
         speak(`ಠೇವಣಿ ಯಶಸ್ವಿಯಾಗಿದೆ! ನಿಮ್ಮ ಹೊಸ ಬ್ಯಾಲೆನ್ಸ್ ${data.new_balance} ರೂಪಾಯಿ.`);
-        alert(`ಠೇವಣಿ ಯಶಸ್ವಿಯಾಗಿದೆ!\n\nಖಾತೆ: ${data.account_number}\nಹೆಸರು: ${data.full_name}\nಶಾಖೆ: ${data.branch_name}\nಹಳೆಯ ಬ್ಯಾಲೆನ್ಸ್: ₹${data.old_balance}\nಹೊಸ ಬ್ಯಾಲೆನ್ಸ್: ₹${data.new_balance}`);
+        
+        // Store transaction data for receipt
+        const transactionData = {
+          type: 'Deposit',
+          type_kn: 'ಠೇವಣಿ',
+          account_number: data.account_number,
+          full_name: data.full_name,
+          branch_name: data.branch_name,
+          amount: deposit_amount,
+          old_balance: data.old_balance,
+          new_balance: data.new_balance,
+          transaction_id: generateTransactionId()
+        };
+        
+        // Show success message with download option
+        showSuccessMessage(transactionData);
       } else {
         speak(data.message || "ಠೇವಣಿ ವಿಫಲವಾಗಿದೆ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.");
         alert(data.message);
       }
     });
+
+    // Generate Transaction ID
+    function generateTransactionId() {
+      const timestamp = Date.now();
+      const random = Math.floor(Math.random() * 10000);
+      return `TXN${timestamp}${random}`;
+    }
+
+    // Store current transaction data
+    let currentTransactionData = null;
+
+    // Show Success Message with Download Option
+    function showSuccessMessage(transactionData) {
+      currentTransactionData = transactionData;
+      
+      const message = `
+        <div style="text-align: center; padding: 20px;">
+          <h2 style="color: #32CD32; margin-bottom: 15px;">✅ ಠೇವಣಿ ಯಶಸ್ವಿಯಾಗಿದೆ!</h2>
+          <p><strong>ಖಾತೆ:</strong> ${transactionData.account_number}</p>
+          <p><strong>ಹೆಸರು:</strong> ${transactionData.full_name}</p>
+          <p><strong>ಶಾಖೆ:</strong> ${transactionData.branch_name}</p>
+          <p><strong>ಠೇವಣಿ ಮೊತ್ತ:</strong> ₹${transactionData.amount.toLocaleString('en-IN')}</p>
+          <p><strong>ಹಳೆಯ ಬ್ಯಾಲೆನ್ಸ್:</strong> ₹${transactionData.old_balance.toLocaleString('en-IN')}</p>
+          <p><strong>ಹೊಸ ಬ್ಯಾಲೆನ್ಸ್:</strong> ₹${transactionData.new_balance.toLocaleString('en-IN')}</p>
+          <div style="margin-top: 20px;">
+            <button id="downloadReceiptBtn" 
+                    style="background: #4facfe; color: white; border: none; padding: 12px 30px; border-radius: 5px; font-size: 16px; cursor: pointer; margin: 5px;">
+              📥 ರಸೀತಿ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ
+            </button>
+            <button id="closeModalBtn" 
+                    style="background: #6c757d; color: white; border: none; padding: 12px 30px; border-radius: 5px; font-size: 16px; cursor: pointer; margin: 5px;">
+              ಮುಚ್ಚಿ
+            </button>
+          </div>
+        </div>
+      `;
+      
+      const modal = document.createElement('div');
+      modal.id = 'successModal';
+      modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: center; justify-content: center;';
+      
+      const modalContent = document.createElement('div');
+      modalContent.style.cssText = 'background: white; padding: 30px; border-radius: 15px; max-width: 500px; width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.3);';
+      modalContent.innerHTML = message;
+      
+      modal.appendChild(modalContent);
+      document.body.appendChild(modal);
+      
+      setTimeout(() => {
+        const downloadBtn = document.getElementById('downloadReceiptBtn');
+        const closeBtn = document.getElementById('closeModalBtn');
+        
+        if (downloadBtn) {
+          downloadBtn.addEventListener('click', () => {
+            if (currentTransactionData) {
+              downloadReceipt(currentTransactionData);
+            }
+          });
+        }
+        
+        if (closeBtn) {
+          closeBtn.addEventListener('click', () => {
+            closeSuccessMessage();
+          });
+        }
+      }, 100);
+      
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          closeSuccessMessage();
+        }
+      });
+    }
+
+    function closeSuccessMessage() {
+      const modal = document.getElementById('successModal');
+      if (modal) {
+        modal.remove();
+      }
+    }
+
+    function downloadReceipt(transactionData) {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('kn-IN', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+      const timeStr = now.toLocaleTimeString('kn-IN', { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit' 
+      });
+
+      const receiptHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Transaction Receipt - ${transactionData.transaction_id}</title>
+  <style>
+    @media print { body { margin: 0; } .no-print { display: none; } }
+    body { font-family: 'Arial', 'Noto Sans Kannada', sans-serif; max-width: 600px; margin: 20px auto; padding: 30px; background: #f5f5f5; }
+    .receipt-container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .header { text-align: center; border-bottom: 3px solid #4facfe; padding-bottom: 20px; margin-bottom: 30px; }
+    .bank-name { font-size: 28px; font-weight: bold; color: #4facfe; margin-bottom: 5px; }
+    .bank-tagline { font-size: 14px; color: #666; }
+    .receipt-title { text-align: center; font-size: 24px; font-weight: bold; color: #32CD32; margin: 20px 0; }
+    .transaction-info { margin: 25px 0; }
+    .info-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #eee; }
+    .info-label { font-weight: bold; color: #333; }
+    .info-value { color: #666; text-align: right; }
+    .amount-row { background: #f0f8ff; padding: 15px; border-radius: 5px; margin: 20px 0; }
+    .amount-label { font-size: 18px; font-weight: bold; color: #4facfe; }
+    .amount-value { font-size: 24px; font-weight: bold; color: #32CD32; margin-top: 5px; }
+    .balance-info { background: #f9f9f9; padding: 15px; border-radius: 5px; margin: 20px 0; }
+    .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 2px dashed #ccc; color: #999; font-size: 12px; }
+    .transaction-id { background: #fff3cd; padding: 10px; border-radius: 5px; text-align: center; margin: 20px 0; font-family: 'Courier New', monospace; font-weight: bold; color: #856404; }
+  </style>
+</head>
+<body>
+  <div class="receipt-container">
+    <div class="header">
+      <div class="bank-name">🤖 AI Voice Banking</div>
+      <div class="bank-tagline">ನಿಮ್ಮ ಸ್ಮಾರ್ಟ್ ಬ್ಯಾಂಕಿಂಗ್ ಪರಿಹಾರ</div>
+    </div>
+    <div class="receipt-title">${transactionData.type_kn} ರಸೀತಿ</div>
+    <div class="transaction-id">ವಹಿವಾಟು ID: ${transactionData.transaction_id}</div>
+    <div class="transaction-info">
+      <div class="info-row"><span class="info-label">ಖಾತೆ ಸಂಖ್ಯೆ:</span><span class="info-value">${transactionData.account_number}</span></div>
+      <div class="info-row"><span class="info-label">ಹೆಸರು:</span><span class="info-value">${transactionData.full_name}</span></div>
+      <div class="info-row"><span class="info-label">ಶಾಖೆ:</span><span class="info-value">${transactionData.branch_name}</span></div>
+      <div class="info-row"><span class="info-label">ದಿನಾಂಕ:</span><span class="info-value">${dateStr}</span></div>
+      <div class="info-row"><span class="info-label">ಸಮಯ:</span><span class="info-value">${timeStr}</span></div>
+    </div>
+    <div class="amount-row">
+      <div class="amount-label">ಠೇವಣಿ ಮೊತ್ತ</div>
+      <div class="amount-value">₹${transactionData.amount.toLocaleString('en-IN')}</div>
+    </div>
+    <div class="balance-info">
+      <div class="info-row"><span class="info-label">ಹಳೆಯ ಬ್ಯಾಲೆನ್ಸ್:</span><span class="info-value">₹${transactionData.old_balance.toLocaleString('en-IN')}</span></div>
+      <div class="info-row"><span class="info-label">ಹೊಸ ಬ್ಯಾಲೆನ್ಸ್:</span><span class="info-value">₹${transactionData.new_balance.toLocaleString('en-IN')}</span></div>
+    </div>
+    <div class="footer">
+      <p>ಧನ್ಯವಾದ! ನಿಮ್ಮ ವಹಿವಾಟು ಯಶಸ್ವಿಯಾಗಿದೆ.</p>
+      <p>ಇದು ಕಂಪ್ಯೂಟರ್-ಉತ್ಪಾದಿತ ರಸೀತಿ ಮತ್ತು ಸಹಿಯ ಅಗತ್ಯವಿಲ್ಲ.</p>
+    </div>
+  </div>
+</body>
+</html>`;
+
+      const blob = new Blob([receiptHTML], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Receipt_${transactionData.transaction_id}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
 
     const micBtn = document.createElement('button');
     micBtn.innerHTML = '🎤';

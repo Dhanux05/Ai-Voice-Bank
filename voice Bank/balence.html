@@ -150,12 +150,120 @@
         resultDiv.classList.remove("hidden");
 
         if (res.ok) {
+          const accNumInt = parseInt(accountNumber, 10);
+          
+          // Fetch transaction history
+          let transactions = [];
+          try {
+            const transRes = await fetch(`http://localhost:5000/api/transactions/${accNumInt}`);
+            if (transRes.ok) {
+              transactions = await transRes.json();
+            }
+          } catch (err) {
+            console.error("Error fetching transactions:", err);
+          }
+          
+          let transactionHTML = '';
+          if (transactions && transactions.length > 0) {
+            transactionHTML = `
+              <div style="margin-top: 30px; padding-top: 20px; border-top: 3px solid #4facfe; background: rgba(79, 172, 254, 0.05); padding: 20px; border-radius: 10px;">
+                <h3 style="margin-bottom: 20px; color: #4facfe; font-size: 1.3em; display: flex; align-items: center; gap: 10px;">
+                  <span>📋</span>
+                  <span>Transaction History</span>
+                </h3>
+                <div style="max-height: 400px; overflow-y: auto; background: white; border-radius: 8px; padding: 10px;">
+                  <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <thead>
+                      <tr style="background: linear-gradient(135deg, #4facfe, #00c6ff); color: white;">
+                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ddd;">Date/Time</th>
+                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ddd;">Type</th>
+                        <th style="padding: 12px; text-align: left; border-bottom: 2px solid #ddd;">Details</th>
+                        <th style="padding: 12px; text-align: right; border-bottom: 2px solid #ddd;">Amount</th>
+                        <th style="padding: 12px; text-align: right; border-bottom: 2px solid #ddd;">Balance</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${transactions.map(txn => {
+                        const date = new Date(txn.timestamp);
+                        const dateStr = date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                        const timeStr = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+                        const isDebit = txn.transaction_type === 'Withdrawal' || (txn.transaction_type === 'Transfer' && txn.from_account === accNumInt);
+                        const isCredit = txn.transaction_type === 'Deposit' || (txn.transaction_type === 'Transfer' && txn.to_account === accNumInt);
+                        const amountColor = isDebit ? '#ff6b6b' : '#32CD32';
+                        const amountSign = isDebit ? '-' : '+';
+                        const typeDisplay = txn.transaction_type === 'Transfer' 
+                          ? (txn.from_account === accNumInt ? 'Transfer Out' : 'Transfer In')
+                          : txn.transaction_type;
+                        const details = txn.transaction_type === 'Transfer'
+                          ? (txn.from_account === accNumInt 
+                              ? `To: ****${String(txn.to_account).slice(-4)}` 
+                              : `From: ****${String(txn.from_account).slice(-4)}`)
+                          : typeDisplay;
+                        
+                        return `
+                          <tr style="border-bottom: 1px solid #eee; transition: background 0.2s;" onmouseover="this.style.background='#f9f9f9'" onmouseout="this.style.background=''">
+                            <td style="padding: 12px;">
+                              <div style="font-weight: 500;">${dateStr}</div>
+                              <small style="color: #999; font-size: 11px;">${timeStr}</small>
+                            </td>
+                            <td style="padding: 12px;">
+                              <span style="padding: 5px 10px; border-radius: 5px; font-size: 12px; font-weight: 600; 
+                                background: ${isDebit ? '#ffe0e0' : '#e0ffe0'}; 
+                                color: ${isDebit ? '#ff6b6b' : '#32CD32'};">
+                                ${typeDisplay}
+                              </span>
+                            </td>
+                            <td style="padding: 12px; color: #666; font-size: 13px;">${details}</td>
+                            <td style="padding: 12px; text-align: right; font-weight: bold; color: ${amountColor}; font-size: 15px;">
+                              ${amountSign}₹${parseFloat(txn.amount).toLocaleString('en-IN')}
+                            </td>
+                            <td style="padding: 12px; text-align: right; color: #666; font-weight: 500;">
+                              ₹${parseFloat(txn.balance_after).toLocaleString('en-IN')}
+                            </td>
+                          </tr>
+                        `;
+                      }).join('')}
+                    </tbody>
+                  </table>
+                </div>
+                <p style="margin-top: 15px; color: #999; font-size: 12px; text-align: center;">
+                  Showing last ${transactions.length} transaction(s)
+                </p>
+              </div>
+            `;
+          } else {
+            transactionHTML = `
+              <div style="margin-top: 30px; padding-top: 20px; border-top: 3px solid #4facfe; background: rgba(79, 172, 254, 0.05); padding: 20px; border-radius: 10px;">
+                <h3 style="margin-bottom: 15px; color: #4facfe; font-size: 1.3em; display: flex; align-items: center; gap: 10px;">
+                  <span>📋</span>
+                  <span>Transaction History</span>
+                </h3>
+                <div style="background: white; padding: 40px; border-radius: 8px; text-align: center;">
+                  <p style="color: #999; font-size: 16px; margin: 0;">
+                    <span style="font-size: 2em; display: block; margin-bottom: 10px;">📭</span>
+                    No transactions found
+                  </p>
+                  <p style="color: #bbb; font-size: 12px; margin-top: 10px;">Start making transactions to see history here</p>
+                </div>
+              </div>
+            `;
+          }
+          
           resultDiv.innerHTML = `
-            <h2>✅ Account Details</h2>
-            <p><strong>Full Name:</strong> ${data.fullName}</p>
-            <p><strong>Account Number:</strong> ${data.accountNumber}</p>
-            <p><strong>Branch:</strong> ${data.branch}</p>
-            <p><strong>Balance:</strong> ₹${data.balance}</p>
+            <div style="background: rgba(255, 255, 255, 0.95); padding: 25px; border-radius: 15px;">
+              <h2 style="color: #32CD32; margin-bottom: 20px; font-size: 1.8em;">✅ Account Details</h2>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                <div>
+                  <p style="margin: 8px 0;"><strong style="color: #666;">Full Name:</strong> <span style="color: #333;">${data.fullName}</span></p>
+                  <p style="margin: 8px 0;"><strong style="color: #666;">Account Number:</strong> <span style="color: #333;">${data.accountNumber}</span></p>
+                </div>
+                <div>
+                  <p style="margin: 8px 0;"><strong style="color: #666;">Branch:</strong> <span style="color: #333;">${data.branch}</span></p>
+                  <p style="margin: 8px 0;"><strong style="color: #666;">Balance:</strong> <span style="font-size: 1.5em; font-weight: bold; color: #32CD32;">₹${data.balance.toLocaleString('en-IN')}</span></p>
+                </div>
+              </div>
+              ${transactionHTML}
+            </div>
           `;
           speak(`Your account balance is ${data.balance} rupees. Account holder name is ${data.fullName}.`);
         } else {

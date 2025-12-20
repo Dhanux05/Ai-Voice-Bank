@@ -53,6 +53,93 @@ A multi-language voice banking application with PIN-protected withdrawals, built
    - Open `index.html` in your web browser, or
    - Navigate to `http://localhost:5000/index.html`
 
+## Viewing Stored Data
+
+All user data is stored in a **SQLite database** file called `bank.db` located in the `voice Bank` directory.
+
+### Database Structure
+
+The database contains two main tables:
+
+1. **`accounts` table**: Stores user account information
+   - `account_number` (12-digit, Primary Key)
+   - `full_name`
+   - `branch_name`
+   - `balance`
+   - `pin` (4-digit PIN)
+   - `email`
+   - `phone`
+
+2. **`transactions` table**: Stores all transaction history
+   - `id` (Auto-increment)
+   - `transaction_id` (Unique transaction ID)
+   - `from_account` (Sender account for transfers)
+   - `to_account` (Receiver account for transfers)
+   - `transaction_type` (Deposit, Withdrawal, Transfer)
+   - `amount`
+   - `balance_after` (Balance after transaction)
+   - `timestamp` (Date and time of transaction)
+
+### Viewing Data
+
+You have several options to view the stored data:
+
+#### Option 1: View All Users
+```bash
+cd "voice Bank"
+node view-users.js
+```
+This will display all registered users with their account details.
+
+#### Option 2: View All Transactions
+```bash
+cd "voice Bank"
+node view-transactions.js
+```
+This will display the last 50 transactions.
+
+#### Option 3: View Everything (Users + Transactions)
+```bash
+cd "voice Bank"
+node view-all-data.js
+```
+This will display both users and recent transactions in one view.
+
+#### Option 4: Using SQLite Command Line
+You can also use SQLite directly:
+```bash
+cd "voice Bank"
+sqlite3 bank.db
+```
+
+Then run SQL queries:
+```sql
+-- View all users
+SELECT * FROM accounts;
+
+-- View all transactions
+SELECT * FROM transactions ORDER BY timestamp DESC;
+
+-- View transactions for a specific account
+SELECT * FROM transactions 
+WHERE from_account = 100000000001 OR to_account = 100000000001 
+ORDER BY timestamp DESC;
+
+-- Count total users
+SELECT COUNT(*) FROM accounts;
+
+-- View total balance across all accounts
+SELECT SUM(balance) as total_balance FROM accounts;
+```
+
+#### Option 5: Using Database Browser Tools
+You can use GUI tools like:
+- **DB Browser for SQLite** (https://sqlitebrowser.org/)
+- **SQLiteStudio** (https://sqlitestudio.pl/)
+- **VS Code SQLite Extension**
+
+Just open the `bank.db` file with any of these tools.
+
 ## Adding Users
 
 You have three options to add users:

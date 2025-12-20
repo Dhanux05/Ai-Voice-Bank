@@ -88,8 +88,14 @@
       recognition.lang = 'kn-IN';
     }
 
+    function getVoices() {
+      return speechSynthesis.getVoices();
+    }
+    
     function speak(text, useEnglish = false) {
+      const voices = getVoices();
       const utterance = new SpeechSynthesisUtterance(text);
+      
       if (useEnglish) {
         utterance.lang = 'en-US';
         const englishText = text
@@ -108,20 +114,35 @@
           .replace(/ವಿಫಲವಾಗಿದೆ/g, 'failed')
           .replace(/ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ/g, 'try again');
         utterance.text = englishText || text;
+        console.log("⚠️ Using English fallback for Kannada");
       } else {
-        utterance.lang = 'kn-IN';
-        utterance.text = text;
+        // Try to find Kannada voice - check multiple patterns
+        const kannadaVoice = voices.find(v => 
+          v.lang.toLowerCase().startsWith('kn') || 
+          v.lang.toLowerCase().includes('kannada') || 
+          v.name.toLowerCase().includes('kannada') ||
+          v.lang === 'kn-IN' ||
+          v.lang === 'kn'
+        );
+        
+        if (kannadaVoice) {
+          utterance.lang = 'kn-IN';
+          utterance.voice = kannadaVoice;
+          utterance.text = text;
+          console.log("✅ Using Kannada voice:", kannadaVoice.name, kannadaVoice.lang);
+        } else {
+          console.log("⚠️ Kannada voice not found. Available voices:", voices.map(v => v.lang + ' - ' + v.name).slice(0, 5));
+          // Still try to use Kannada language code - browser might have a fallback
+          utterance.lang = 'kn-IN';
+          utterance.text = text; // Keep original Kannada text
+          console.log("🔊 Attempting to speak Kannada text with kn-IN language code");
+        }
       }
+      
       utterance.rate = 0.9;
-      
-      const voices = speechSynthesis.getVoices();
-      const kannadaVoice = voices.find(v => v.lang.startsWith('kn'));
-      
-      if (!kannadaVoice && !useEnglish) {
-        speak(text, true);
-        return;
-      }
-      
+      utterance.pitch = 1;
+      utterance.volume = 1;
+      console.log("🔊 Speaking in Kannada withdraw page:", text.substring(0, 50));
       speechSynthesis.speak(utterance);
     }
 
@@ -242,7 +263,22 @@
         const data = await response.json();
         if (response.ok) {
           speak(`ಹಣ ತೆಗೆಯುವಿಕೆ ಯಶಸ್ವಿಯಾಗಿದೆ! ನಿಮ್ಮ ಹೊಸ ಬ್ಯಾಲೆನ್ಸ್ ${data.new_balance} ರೂಪಾಯಿ.`);
-          alert(`ಹಣ ತೆಗೆಯುವಿಕೆ ಯಶಸ್ವಿಯಾಗಿದೆ!\n\nಖಾತೆ: ${data.account_number}\nಹೆಸರು: ${data.full_name}\nತೆಗೆದ ಮೊತ್ತ: ₹${data.withdraw_amount}\nಹಳೆಯ ಬ್ಯಾಲೆನ್ಸ್: ₹${data.old_balance}\nಹೊಸ ಬ್ಯಾಲೆನ್ಸ್: ₹${data.new_balance}`);
+          
+          // Store transaction data for receipt
+          const transactionData = {
+            type: 'Withdrawal',
+            type_kn: 'ಹಣ ತೆಗೆಯುವಿಕೆ',
+            account_number: data.account_number,
+            full_name: data.full_name,
+            branch_name: data.branch_name,
+            amount: data.withdraw_amount,
+            old_balance: data.old_balance,
+            new_balance: data.new_balance,
+            transaction_id: generateTransactionId()
+          };
+          
+          // Show success message with download option
+          showSuccessMessage(transactionData);
           form.reset();
           voiceStep = 'account';
         } else {
