@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">        
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bank Receipt Generator</title>   
+  <style>
+    body { font-family: Arial; background: #eef2f3; text-align: center; margin-top: 50px; }
+    input { padding: 8px; border-radius: 6px; }
+    button { padding: 8px 16px; border-radius: 6px; cursor: pointer; margin-left: 10px; }
+    .receipt { background: #fff; padding: 20px; margin-top: 20px; display: inline-block; border-radius: 12px; box-shadow: 0 0 8px #ccc; text-align: left; }
+  </style>
+</head>
+<body>
+  <h1>🏦 Bank Receipt Generator</h1>
+  <input type="text" id="accNumber" placeholder="Enter Account Number" />
+  <button onclick="getReceipt()">Print Receipt</button>
+
+  <div id="receipt" class="receipt"></div>
+
+  <script>
+    async function getReceipt() {
+      const accNumber = document.getElementById("accNumber").value;
+      if (!accNumber) return alert("Please enter account number");
+
+      const res = await fetch(`http://localhost:3000/account/${accNumber}`);    
+      const data = await res.json();   
+
+      if (data.error) {
+        document.getElementById("receipt").innerHTML = `<p>${data.error}</p>`;
+      } else {
+        document.getElementById("receipt").innerHTML = `
+          <h2>Bank Receipt</h2>
+          <p><strong>Name:</strong> ${data.full_name}</p>
+          <p><strong>Account No:</strong> ${data.account_number}</p>
+          <p><strong>Bank:</strong> ${data.bank_name}</p>
+          <p><strong>Branch:</strong> ${data.branch_name}</p>
+          <p><strong>Balance:</strong> ₹${data.balance}</p>
+          <p><em>Date: ${new Date().toLocaleString()}</em></p>   
+        `;
+      }
+    }
+  </script>         
+</body>       
+</html>    

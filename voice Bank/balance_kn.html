@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="kn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📊 ಬ್ಯಾಲೆನ್ಸ್ - AI Voice Banking</title>
+  <link rel="stylesheet" href="style2.css">
+</head>
+<body>
+  <div class="bg-animation"></div>
+  <div class="container">
+    <h1 class="title">📊 ನಿಮ್ಮ ಖಾತೆ ಬ್ಯಾಲೆನ್ಸ್</h1>
+    <p class="subtitle">ಇಲ್ಲಿ ನಿಮ್ಮ ಪ್ರಸ್ತುತ ಖಾತೆ ಮಾಹಿತಿಯನ್ನು ನೋಡಿ</p>
+
+    <div class="form-card fade-in">
+      <div class="input-group">
+        <input type="text" maxlength="12" pattern="[0-9]{12}" required>
+        <label>ಖಾತೆ ಸಂಖ್ಯೆ (12 ಅಂಕೆಗಳು)</label>
+      </div>
+
+      <button type="button" class="btn-submit" onclick="showBalance()">✅ ಬ್ಯಾಲೆನ್ಸ್ ನೋಡಿ</button>
+      <a href="index.html" class="btn-back">⬅️ ಮೆನುಗೆ ಹಿಂತಿರುಗಿ</a>
+
+      <!-- Balance Result -->
+      <div id="balanceResult" style="margin-top:20px; font-size:18px; font-weight:bold; color:#fff;"></div>
+    </div>
+  </div>
+
+  <script>
+    let recognition = null;
+    let isListening = false;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'kn-IN';
+    }
+
+    function speak(text, useEnglish = false) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      if (useEnglish) {
+        utterance.lang = 'en-US';
+        const englishText = text
+          .replace(/ಬ್ಯಾಲೆನ್ಸ್ ಪರಿಶೀಲನೆ ಪುಟಕ್ಕೆ ಸ್ವಾಗತ/g, 'Welcome to balance check page')
+          .replace(/ದಯವಿಟ್ಟು ನಿಮ್ಮ ಖಾತೆ ಸಂಖ್ಯೆಯನ್ನು ಹೇಳಿ/g, 'Please say your account number')
+          .replace(/ಖಾತೆ ಸಂಖ್ಯೆ/g, 'account number')
+          .replace(/ನಮೂದಿಸಲಾಗಿದೆ/g, 'entered')
+          .replace(/ಬ್ಯಾಲೆನ್ಸ್ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ/g, 'Checking balance')
+          .replace(/ನಿಮ್ಮ ಖಾತೆ ಬ್ಯಾಲೆನ್ಸ್/g, 'Your account balance')
+          .replace(/ರೂಪಾಯಿ/g, 'rupees')
+          .replace(/ಖಾತೆದಾರರ ಹೆಸರು/g, 'Account holder name')
+          .replace(/ಖಾತೆ ಕಂಡುಬಂದಿಲ್ಲ/g, 'Account not found')
+          .replace(/ಸರ್ವರ್ ತಲುಪಲು ಸಾಧ್ಯವಿಲ್ಲ/g, 'Server not reachable')
+          .replace(/ಸಂಪರ್ಕವನ್ನು ಪರಿಶೀಲಿಸಿ/g, 'check your connection');
+        utterance.text = englishText || text;
+      } else {
+        utterance.lang = 'kn-IN';
+        utterance.text = text;
+      }
+      utterance.rate = 0.9;
+      
+      const voices = speechSynthesis.getVoices();
+      const kannadaVoice = voices.find(v => v.lang.startsWith('kn'));
+      
+      if (!kannadaVoice && !useEnglish) {
+        speak(text, true);
+        return;
+      }
+      
+      speechSynthesis.speak(utterance);
+    }
+
+    function startListening() {
+      if (!recognition) return;
+      recognition.start();
+      isListening = true;
+      recognition.onresult = (event) => {
+        const command = event.results[0][0].transcript.toLowerCase().trim();
+        handleVoiceCommand(command);
+      };
+      recognition.onend = () => { isListening = false; };
+    }
+
+    function handleVoiceCommand(command) {
+      const accountInput = document.querySelector("input[type='text']");
+      const accountMatch = command.match(/(?:ಖಾತೆ|ಸಂಖ್ಯೆ|account|number)\s*(\d+)|(\d{12})|(\d{4,12})/);
+      if (accountMatch) {
+        const accNum = accountMatch[1] || accountMatch[2];
+        accountInput.value = accNum;
+        speak(`ಖಾತೆ ಸಂಖ್ಯೆ ${accNum} ನಮೂದಿಸಲಾಗಿದೆ. ಬ್ಯಾಲೆನ್ಸ್ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ.`);
+        setTimeout(() => showBalance(), 1000);
+      } else if (command.includes('ಹಿಂದಕ್ಕೆ') || command.includes('back')) {
+        window.location.href = "index.html";
+      }
+    }
+
+    let voicesLoaded = false;
+    speechSynthesis.onvoiceschanged = () => {
+      voicesLoaded = true;
+    };
+
+    window.addEventListener('load', () => {
+      if (!voicesLoaded) {
+        const voices = speechSynthesis.getVoices();
+        if (voices.length > 0) voicesLoaded = true;
+      }
+      
+      setTimeout(() => {
+        const kannadaText = "ಬ್ಯಾಲೆನ್ಸ್ ಪರಿಶೀಲನೆ ಪುಟಕ್ಕೆ ಸ್ವಾಗತ. ದಯವಿಟ್ಟು ನಿಮ್ಮ ಖಾತೆ ಸಂಖ್ಯೆಯನ್ನು ಹೇಳಿ.";
+        const englishText = "Welcome to balance check page. Please say your account number.";
+        speak(kannadaText);
+        setTimeout(() => startListening(), 3000);
+      }, 1000);
+    });
+
+    async function showBalance() {
+      if (recognition && isListening) recognition.stop();
+      const accountNumber = document.querySelector("input[type='text']").value.trim();
+      if (!accountNumber) {
+        speak("ದಯವಿಟ್ಟು ಖಾತೆ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ");
+        return;
+      }
+      speak("ನಿಮ್ಮ ಬ್ಯಾಲೆನ್ಸ್ ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ. ದಯವಿಟ್ಟು ನಿರೀಕ್ಷಿಸಿ.");
+      try {
+        const res = await fetch(`http://localhost:5000/api/balance/${accountNumber}`);
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById("balanceResult").innerHTML = 
+            `✅ ಖಾತೆ ವಿವರಗಳು<br><br>` +
+            `<strong>ಹೆಸರು:</strong> ${data.fullName}<br>` +
+            `<strong>ಖಾತೆ ಸಂಖ್ಯೆ:</strong> ${data.accountNumber}<br>` +
+            `<strong>ಶಾಖೆ:</strong> ${data.branch}<br>` +
+            `<strong>ಬ್ಯಾಲೆನ್ಸ್:</strong> ₹${data.balance}`;
+          speak(`ನಿಮ್ಮ ಖಾತೆ ಬ್ಯಾಲೆನ್ಸ್ ${data.balance} ರೂಪಾಯಿ. ಖಾತೆದಾರರ ಹೆಸರು ${data.fullName}.`);
+        } else {
+          document.getElementById("balanceResult").innerText = `❌ ${data.error}`;
+          speak(data.error || "ಖಾತೆ ಕಂಡುಬಂದಿಲ್ಲ");
+        }
+      } catch (error) {
+        document.getElementById("balanceResult").innerText = "❌ ಸರ್ವರ್ ತಲುಪಲು ಸಾಧ್ಯವಿಲ್ಲ";
+        speak("ಸರ್ವರ್ ತಲುಪಲು ಸಾಧ್ಯವಿಲ್ಲ. ದಯವಿಟ್ಟು ನಿಮ್ಮ ಸಂಪರ್ಕವನ್ನು ಪರಿಶೀಲಿಸಿ.");
+      }
+    }
+
+    const micBtn = document.createElement('button');
+    micBtn.innerHTML = '🎤';
+    micBtn.style.cssText = 'position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px; border-radius: 50%; background: #4facfe; color: white; border: none; font-size: 24px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 1000;';
+    micBtn.onclick = () => {
+      speak("ದಯವಿಟ್ಟು ನಿಮ್ಮ ಖಾತೆ ಸಂಖ್ಯೆಯನ್ನು ಹೇಳಿ.");
+      startListening();
+    };
+    document.body.appendChild(micBtn);
+  </script>
+</body>
+</html>

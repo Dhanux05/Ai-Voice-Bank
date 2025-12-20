@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📊 बैलेंस - एआई वॉयस बैंकिंग</title>
+  <link rel="stylesheet" href="style2.css">
+</head>
+<body>
+  <div class="bg-animation"></div>
+  <div class="container">
+    <h1 class="title">📊 आपका खाता बैलेंस</h1>
+    <p class="subtitle">यहाँ अपने वर्तमान खाता विवरण को देखें</p>
+
+    <div class="form-card fade-in">
+      <div class="input-group">
+        <input type="text" maxlength="12" pattern="[0-9]{12}" required>
+        <label>खाता संख्या (12 अंक)</label>
+      </div>
+
+      <button type="button" class="btn-submit" onclick="showBalance()">✅ बैलेंस देखें</button>
+      <a href="index.html" class="btn-back">⬅️ मेनू पर वापस जाएँ</a>
+
+      <!-- Balance Result -->
+      <div id="balanceResult" style="margin-top:20px; font-size:18px; font-weight:bold; color:#fff;"></div>
+    </div>
+  </div>
+
+  <script>
+    async function showBalance() {
+      const accountNumber = document.querySelector("input[type='text']").value.trim();
+      if (!accountNumber) {
+        alert("कृपया खाता संख्या दर्ज करें");
+        return;
+      }
+      try {
+        const res = await fetch(`http://localhost:5000/api/balance/${accountNumber}`);
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById("balanceResult").innerHTML = 
+            `✅ खाता विवरण<br><br>` +
+            `<strong>नाम:</strong> ${data.fullName}<br>` +
+            `<strong>खाता संख्या:</strong> ${data.accountNumber}<br>` +
+            `<strong>शाखा:</strong> ${data.branch}<br>` +
+            `<strong>बैलेंस:</strong> ₹${data.balance}`;
+        } else {
+          document.getElementById("balanceResult").innerText = `❌ ${data.error}`;
+        }
+      } catch (error) {
+        document.getElementById("balanceResult").innerText = "❌ सर्वर तक पहुंच नहीं सकी";
+      }
+    }
+  </script>
+</body>
+</html>

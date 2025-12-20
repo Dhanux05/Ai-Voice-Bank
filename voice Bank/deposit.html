@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deposit - AI Voice Banking</title>
+  <link rel="stylesheet" href="style2.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    /* Quick Amount Bubbles */
+    .quick-amounts {
+      margin-top: 15px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .amount-bubble {
+      background: #4facfe;
+      color: white;
+      padding: 10px 18px;
+      border-radius: 25px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+      border: none;
+    }
+
+    .amount-bubble:hover {
+      background: #00c6ff;
+      transform: scale(1.1);
+    }
+  </style>
+</head>
+<body>
+  <!-- Background Animation -->
+  <div class="bg-animation"></div>
+
+  <!-- Main Container -->
+  <div class="container">
+    <h1 class="title">💰 Deposit Money</h1>
+    <p class="subtitle">Fill in the details to deposit funds</p>
+
+    <!-- Deposit Form -->
+    <form class="form-card fade-in">
+      <div class="input-group">
+        <input type="text" maxlength="12" pattern="[0-9]{12}" required>
+        <label>Account Number (12 digits)</label>
+      </div>
+
+      <div class="input-group">
+        <input type="number" id="depositAmount" required>
+        <label>Deposit Amount (₹)</label>
+      </div>
+
+      <!-- Quick Amount Bubbles -->
+      <div class="quick-amounts">
+        <button type="button" class="amount-bubble" data-value="500">₹500</button>
+        <button type="button" class="amount-bubble" data-value="1000">₹1000</button>
+        <button type="button" class="amount-bubble" data-value="2000">₹2000</button>
+        <button type="button" class="amount-bubble" data-value="5000">₹5000</button>
+      </div>
+
+      <button type="submit" class="btn-submit">✅ Deposit</button>
+      <a href="index.html" class="btn-back">⬅️ Back to Menu</a>
+    </form>
+  </div>
+
+  <script>
+    // Add event listeners to bubbles
+    document.querySelectorAll(".amount-bubble").forEach(button => {
+      button.addEventListener("click", () => {
+        document.getElementById("depositAmount").value = button.dataset.value;
+      });
+    });
+  </script>
+  <script>
+  const form = document.querySelector("form");
+  let recognition = null;
+  let isListening = false;
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SpeechRecognition) {
+    recognition = new SpeechRecognition();
+    recognition.continuous = true; // Keep listening
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+  }
+
+  function speak(text) {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+    utterance.rate = 0.9;
+    speechSynthesis.speak(utterance);
+  }
+
+  function startListening() {
+    if (!recognition) {
+      alert("Speech recognition not supported. Please use Chrome or Edge browser.");
+      return;
+    }
+    
+    try {
+      recognition.stop(); // Stop any existing recognition
+    } catch(e) {}
+    
+    recognition.continuous = true;
+    recognition.onresult = (event) => {
+      if (event.results.length > 0) {
+        const command = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
+        console.log("Heard:", command);
+        handleVoiceCommand(command);
+      }
+    };
+    
+    recognition.onerror = (event) => {
+      console.log("Recognition error:", event.error);
+      if (event.error === 'not-allowed') {
+        alert("Microphone permission denied. Please allow microphone access.");
+        isListening = false;
+      } else if (event.error === 'no-speech') {
+        // Auto-restart if no speech
+        setTimeout(() => {
+          if (isListening) {
+            try { recognition.start(); } catch(e) {}
+          }
+        }, 1000);
+      } else if (event.error !== 'aborted') {
+        setTimeout(() => {
+          if (isListening) {
+            try { recognition.start(); } catch(e) {}
+          }
+        }, 1000);
+      }
+    };
+    
+    recognition.onend = () => {
+      // Auto-restart
+      if (isListening) {
+        setTimeout(() => {
+          try {
+            recognition.start();
+          } catch(e) {
+            isListening = false;
+          }
+        }, 500);
+      }
+    };
+    
+    try {
+      recognition.start();
+      isListening = true;
+      console.log("🎤 Listening started");
+    } catch(e) {
+      console.log("Error starting:", e);
+      alert("Could not start voice recognition. Please check microphone permissions.");
+    }
+  }
+
+  function handleVoiceCommand(command) {
+    const accountInput = form.querySelector("input[type='text']");
+    const amountInput = document.getElementById("depositAmount");
+    
+    // Extract account number
+      const accountMatch = command.match(/(?:account|number)\s*(\d+)|(\d{12})|(\d{4,12})/);
+    if (accountMatch) {
+      const accNum = accountMatch[1] || accountMatch[2];
+      accountInput.value = accNum;
+      speak(`Account number ${accNum} entered. Please say the deposit amount.`);
+      setTimeout(() => startListening(), 2000);
+      return;
+    }
+    
+    // Extract amount
+    const amountMatch = command.match(/(\d+)\s*(?:rupees|rupee|rs|amount)/i) || command.match(/(\d+)/);
+    if (amountMatch && accountInput.value) {
+      const amount = amountMatch[1];
+      amountInput.value = amount;
+      speak(`Amount ${amount} rupees entered. Submitting deposit.`);
+      setTimeout(() => form.dispatchEvent(new Event('submit')), 1000);
+      return;
+    }
+    
+    // Quick amounts
+    if (command.includes('five hundred') || command.includes('500')) {
+      amountInput.value = 500;
+      speak("Five hundred rupees selected");
+    } else if (command.includes('one thousand') || command.includes('1000')) {
+      amountInput.value = 1000;
+      speak("One thousand rupees selected");
+    } else if (command.includes('two thousand') || command.includes('2000')) {
+      amountInput.value = 2000;
+      speak("Two thousand rupees selected");
+    } else if (command.includes('five thousand') || command.includes('5000')) {
+      amountInput.value = 5000;
+      speak("Five thousand rupees selected");
+    } else if (command.includes('submit') || command.includes('deposit')) {
+      form.dispatchEvent(new Event('submit'));
+    } else if (command.includes('back')) {
+      window.location.href = "index.html";
+    }
+  }
+
+  // Speak on page load
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      speak("Welcome to deposit page. Please say your account number, then the deposit amount. You can also say quick amounts like five hundred, one thousand, two thousand, or five thousand rupees.");
+      setTimeout(() => startListening(), 4000);
+    }, 1000);
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (recognition && isListening) recognition.stop();
+
+    const account_number = form.querySelector("input[type='text']").value.trim();
+    const deposit_amount = parseFloat(document.getElementById("depositAmount").value);
+
+    if (!account_number || !deposit_amount) {
+      speak("Please enter account number and amount");
+      return;
+    }
+
+    speak("Processing your deposit. Please wait.");
+
+    const response = await fetch("http://localhost:5000/deposit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ account_number, deposit_amount })
+    });
+
+    const data = await response.json();
+    
+    if (response.ok && data.new_balance !== undefined) {
+      speak(`Deposit successful! Your new balance is ${data.new_balance} rupees.`);
+      alert(
+        `Deposit successful!\n\nAccount: ${data.account_number}\nName: ${data.full_name}\nBranch: ${data.branch_name}\nOld Balance: ₹${data.old_balance}\nNew Balance: ₹${data.new_balance}`
+      );
+    } else {
+      speak(data.message || "Deposit failed. Please try again.");
+      alert(data.message);
+    }
+  });
+
+  // Microphone button
+  const micBtn = document.createElement('button');
+  micBtn.innerHTML = '🎤';
+  micBtn.style.cssText = 'position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px; border-radius: 50%; background: #4facfe; color: white; border: none; font-size: 24px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 1000; transition: all 0.3s;';
+  micBtn.onclick = () => {
+    if (isListening) {
+      // Stop
+      try {
+        recognition.stop();
+        isListening = false;
+        micBtn.style.background = '#4facfe';
+        micBtn.innerHTML = '🎤';
+        speak("Stopped listening.");
+      } catch(e) {}
+    } else {
+      // Start
+      speak("Listening. Please say your account number and amount.");
+      micBtn.style.background = '#ff6b6b';
+      micBtn.innerHTML = '🔴';
+      setTimeout(() => startListening(), 1000);
+    }
+  };
+  document.body.appendChild(micBtn);
+</script>
+
+</body>
+</html>

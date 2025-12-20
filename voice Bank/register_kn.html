@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="kn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ನೋಂದಣಿ - ಎಐ ವಾಯ್ಸ್ ಬ್ಯಾಂಕಿಂಗ್</title>
+  <link rel="stylesheet" href="style2.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="bg-animation"></div>
+  <div class="container">
+    <h1 class="title">📝 ಹೊಸ ಖಾತೆ ನೋಂದಣಿ</h1>
+    <p class="subtitle">ನಿಮ್ಮ ಖಾತೆಯನ್ನು ರಚಿಸಲು ವಿವರಗಳನ್ನು ಭರ್ತಿ ಮಾಡಿ</p>
+
+    <form class="form-card fade-in" id="registerForm">
+      <div class="input-group">
+        <input type="text" id="fullName" required>
+        <label>ಪೂರ್ಣ ಹೆಸರು</label>
+      </div>
+
+      <div class="input-group">
+        <input type="text" id="branchName" required>
+        <label>ಶಾಖೆಯ ಹೆಸರು</label>
+      </div>
+
+      <div class="input-group">
+        <input type="number" id="initialBalance" min="0" value="0">
+        <label>ಆರಂಭಿಕ ಬ್ಯಾಲೆನ್ಸ್ (₹) - ಐಚ್ಛಿಕ</label>
+      </div>
+
+      <div class="input-group">
+        <input type="password" id="pin" maxlength="4" pattern="[0-9]{4}" required>
+        <label>PIN (4 ಅಂಕೆಗಳು)</label>
+      </div>
+
+      <div class="input-group">
+        <input type="email" id="email">
+        <label>ಇಮೇಲ್ - ಐಚ್ಛಿಕ</label>
+      </div>
+
+      <div class="input-group">
+        <input type="tel" id="phone" pattern="[0-9]{10}">
+        <label>ಫೋನ್ ಸಂಖ್ಯೆ - ಐಚ್ಛಿಕ</label>
+      </div>
+
+      <button type="submit" class="btn-submit">✅ ನೋಂದಣಿ ಮಾಡಿ</button>
+      <a href="index.html" class="btn-back">⬅️ ಮುಖಪುಟಕ್ಕೆ ಹಿಂತಿರುಗಿ</a>
+    </form>
+
+    <div id="result" class="card hidden fade-in" style="margin-top: 20px;"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById("registerForm");
+    const resultDiv = document.getElementById("result");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const full_name = document.getElementById("fullName").value.trim();
+      const branch_name = document.getElementById("branchName").value.trim();
+      const initial_balance = document.getElementById("initialBalance").value || 0;
+      const pin = document.getElementById("pin").value;
+      const email = document.getElementById("email").value.trim();
+      const phone = document.getElementById("phone").value.trim();
+
+      if (pin.length !== 4 || !/^\d+$/.test(pin)) {
+        alert("PIN 4 ಅಂಕೆಗಳಾಗಿರಬೇಕು");
+        return;
+      }
+
+      try {
+        const response = await fetch("http://localhost:5000/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            full_name,
+            branch_name,
+            initial_balance: parseFloat(initial_balance),
+            pin,
+            email: email || null,
+            phone: phone || null
+          })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          resultDiv.classList.remove("hidden");
+          resultDiv.innerHTML = `
+            <h2 style="color: #4ade80;">✅ ನೋಂದಣಿ ಯಶಸ್ವಿಯಾಗಿದೆ!</h2>
+            <p><strong>ಖಾತೆ ಸಂಖ್ಯೆ:</strong> ${data.account_number}</p>
+            <p><strong>ಹೆಸರು:</strong> ${data.full_name}</p>
+            <p><strong>ಶಾಖೆ:</strong> ${data.branch_name}</p>
+            <p><strong>ಆರಂಭಿಕ ಬ್ಯಾಲೆನ್ಸ್:</strong> ₹${data.balance}</p>
+            <p style="color: #fbbf24; margin-top: 10px;"><strong>⚠️ ದಯವಿಟ್ಟು ನಿಮ್ಮ ಖಾತೆ ಸಂಖ್ಯೆ ಮತ್ತು PIN ಅನ್ನು ನೋಟ್ ಮಾಡಿ!</strong></p>
+          `;
+          form.reset();
+        } else {
+          alert(data.message || "ನೋಂದಣಿ ವಿಫಲವಾಗಿದೆ");
+        }
+      } catch (error) {
+        alert("❌ ಸರ್ವರ್ ತಲುಪಲು ಸಾಧ್ಯವಿಲ್ಲ");
+        console.error("Error:", error);
+      }
+    });
+  </script>
+</body>
+</html>
+
+

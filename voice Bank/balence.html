@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Check Balance - AI Voice Banking</title>
+  <link rel="stylesheet" href="style2.css">
+</head>
+<body>
+  <!-- Background Animation -->
+  <div class="bg-animation"></div>
+
+  <!-- Main Container -->
+  <div class="container">
+    <h1 class="title">📊 Check Balance</h1>
+    <p class="subtitle">Enter your Account Number</p>
+
+    <form class="form-card fade-in" id="balanceForm">
+      <div class="input-group">
+        <input type="text" id="accountNumber" maxlength="12" pattern="[0-9]{12}" required>
+        <label>Account Number (12 digits)</label>
+      </div>
+      <button type="submit" class="btn-submit">🔍 Check Balance</button>
+      <a href="index.html" class="btn-back">⬅️ Back to Menu</a>
+    </form>
+
+    <!-- Results -->
+    <div id="result" class="card hidden fade-in"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById("balanceForm");
+    const resultDiv = document.getElementById("result");
+    let recognition = null;
+    let isListening = false;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      recognition = new SpeechRecognition();
+      recognition.continuous = true; // Keep listening
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+    }
+
+    function speak(text) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-US';
+      utterance.rate = 0.9;
+      speechSynthesis.speak(utterance);
+    }
+
+    function startListening() {
+      if (!recognition) {
+        alert("Speech recognition not supported. Please use Chrome or Edge browser.");
+        return;
+      }
+      
+      try {
+        recognition.stop();
+      } catch(e) {}
+      
+      recognition.continuous = true;
+      recognition.onresult = (event) => {
+        if (event.results.length > 0) {
+          const command = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
+          console.log("Heard:", command);
+          handleVoiceCommand(command);
+        }
+      };
+      
+      recognition.onerror = (event) => {
+        console.log("Recognition error:", event.error);
+        if (event.error === 'not-allowed') {
+          alert("Microphone permission denied. Please allow microphone access.");
+          isListening = false;
+        } else if (event.error === 'no-speech') {
+          setTimeout(() => {
+            if (isListening) {
+              try { recognition.start(); } catch(e) {}
+            }
+          }, 1000);
+        } else if (event.error !== 'aborted') {
+          setTimeout(() => {
+            if (isListening) {
+              try { recognition.start(); } catch(e) {}
+            }
+          }, 1000);
+        }
+      };
+      
+      recognition.onend = () => {
+        if (isListening) {
+          setTimeout(() => {
+            try {
+              recognition.start();
+            } catch(e) {
+              isListening = false;
+            }
+          }, 500);
+        }
+      };
+      
+      try {
+        recognition.start();
+        isListening = true;
+        console.log("🎤 Listening started");
+      } catch(e) {
+        console.log("Error starting:", e);
+        alert("Could not start voice recognition. Please check microphone permissions.");
+      }
+    }
+
+    function handleVoiceCommand(command) {
+      const accountInput = document.getElementById("accountNumber");
+      const accountMatch = command.match(/(?:account|number)\s*(\d+)|(\d{12})|(\d{4,12})/);
+      if (accountMatch) {
+        const accNum = accountMatch[1] || accountMatch[2];
+        accountInput.value = accNum;
+        speak(`Account number ${accNum} entered. Checking balance.`);
+        setTimeout(() => form.dispatchEvent(new Event('submit')), 1000);
+      } else if (command.includes('back')) {
+        window.location.href = "index.html";
+      }
+    }
+
+    // Speak on page load
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        speak("Welcome to balance check page. Please say your account number.");
+        setTimeout(() => startListening(), 3000);
+      }, 1000);
+    });
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (recognition && isListening) recognition.stop();
+
+      const accountNumber = document.getElementById("accountNumber").value;
+
+      if (!accountNumber) {
+        speak("Please enter your account number");
+        return;
+      }
+
+      speak("Checking your balance. Please wait.");
+
+      try {
+        const res = await fetch(`http://localhost:5000/api/balance/${accountNumber}`);
+        const data = await res.json();
+
+        resultDiv.classList.remove("hidden");
+
+        if (res.ok) {
+          resultDiv.innerHTML = `
+            <h2>✅ Account Details</h2>
+            <p><strong>Full Name:</strong> ${data.fullName}</p>
+            <p><strong>Account Number:</strong> ${data.accountNumber}</p>
+            <p><strong>Branch:</strong> ${data.branch}</p>
+            <p><strong>Balance:</strong> ₹${data.balance}</p>
+          `;
+          speak(`Your account balance is ${data.balance} rupees. Account holder name is ${data.fullName}.`);
+        } else {
+          resultDiv.innerHTML = `<p style="color:red;">${data.error}</p>`;
+          speak(data.error || "Account not found");
+        }
+      } catch (error) {
+        resultDiv.classList.remove("hidden");
+        resultDiv.innerHTML = `<p style="color:red;">❌ Server not reachable</p>`;
+        speak("Server not reachable. Please check your connection.");
+      }
+    });
+
+    // Microphone button
+    const micBtn = document.createElement('button');
+    micBtn.innerHTML = '🎤';
+    micBtn.style.cssText = 'position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px; border-radius: 50%; background: #4facfe; color: white; border: none; font-size: 24px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 1000;';
+    micBtn.onclick = () => {
+      speak("Please say your account number.");
+      startListening();
+    };
+    document.body.appendChild(micBtn);
+  </script>
+</body>
+</html>

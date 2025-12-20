@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">   
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>AI Voice Banking</title>
+  <link rel="stylesheet" href="style2.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Kannada:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Poppins', 'Noto Sans Kannada', sans-serif;
+    }
+    .kannada-text {
+      font-family: 'Noto Sans Kannada', sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <!-- Background Animation -->
+  <div class="bg-animation"></div>
+
+  <!-- Main Container -->
+  <div class="container">
+    <h1 class="title" id="mainTitle">🤖 AI Voice Banking</h1>
+    <p class="subtitle" id="mainSubtitle">Your smart voice assistant for banking</p>
+
+    <!-- Language Selection Page -->
+    <div class="card fade-in" id="langCard">
+      <h2>Select Language 🌐</h2>
+      <div class="btn-group">
+        <button class="btn btn-green" data-lang="en">English</button>
+        <button class="btn btn-blue" data-lang="hi">हिंदी</button>
+        <button class="btn btn-purple" data-lang="kn">ಕನ್ನಡ</button>
+      </div>
+    </div>
+
+    <!-- Main Menu Page -->
+    <div class="card fade-in hidden" id="menu">
+      <h2 id="menuTitle">Choose an Option 🎙️</h2>
+      <div class="btn-group">
+        <button class="btn btn-green" id="btnDeposit">💰 Deposit</button>
+        <button class="btn btn-red" id="btnWithdraw">📉 Withdraw</button>
+        <button class="btn btn-blue" id="btnBalance">📊 Balance</button>
+        <button class="btn btn-dark" id="btnExit">❌ Exit</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const langCard = document.getElementById("langCard");
+    const menu = document.getElementById("menu");
+    const langButtons = langCard.querySelectorAll("button");
+
+    let selectedLang = "en"; // default
+    let recognition = null;
+    let isListening = false;
+
+    // Initialize Speech Recognition
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      recognition = new SpeechRecognition();
+      recognition.continuous = true; // Keep listening
+      recognition.interimResults = false;
+    }
+
+    // Voice prompts in different languages
+    const voicePrompts = {
+      en: {
+        langSelection: "Please choose your language. Say English, Hindi, or Kannada",
+        menuOptions: "Choose an option. Say Deposit, Withdraw, Balance, or Exit"
+      },
+      hi: {
+        langSelection: "कृपया अपनी भाषा चुनें। अंग्रेजी, हिंदी, या कन्नड़ कहें",
+        menuOptions: "एक विकल्प चुनें। जमा, निकालें, बैलेंस, या बाहर जाएँ कहें"
+      },
+      kn: {
+        langSelection: "ದಯವಿಟ್ಟು ನಿಮ್ಮ ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ। ಇಂಗ್ಲೀಷ್, ಹಿಂದಿ, ಅಥವಾ ಕನ್ನಡ ಎಂದು ಹೇಳಿ",
+        menuOptions: "ಒಂದು ಆಯ್ಕೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ। ಠೇವಣಿ, ಹಣ ತೆಗೆಯಿರಿ, ಬ್ಯಾಲೆನ್ಸ್, ಅಥವಾ ನಿರ್ಗಮಿಸಿ ಎಂದು ಹೇಳಿ"
+      }
+    };
+
+    // Speak function with fallback for Kannada
+    function speak(text, lang = 'en') {
+      const utterance = new SpeechSynthesisUtterance(text);
+      
+      if (lang === 'kn') {
+        utterance.lang = 'kn-IN';
+        // Check if Kannada voice is available
+        const voices = speechSynthesis.getVoices();
+        const kannadaVoice = voices.find(v => v.lang.startsWith('kn'));
+        
+        if (!kannadaVoice) {
+          // Fallback to English with transliterated text
+          utterance.lang = 'en-US';
+          const englishText = text
+            .replace(/ದಯವಿಟ್ಟು ನಿಮ್ಮ ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ/g, 'Please choose your language')
+            .replace(/ಇಂಗ್ಲೀಷ್, ಹಿಂದಿ, ಅಥವಾ ಕನ್ನಡ ಎಂದು ಹೇಳಿ/g, 'Say English, Hindi, or Kannada')
+            .replace(/ಒಂದು ಆಯ್ಕೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ/g, 'Choose an option')
+            .replace(/ಠೇವಣಿ, ಹಣ ತೆಗೆಯಿರಿ, ಬ್ಯಾಲೆನ್ಸ್, ಅಥವಾ ನಿರ್ಗಮಿಸಿ ಎಂದು ಹೇಳಿ/g, 'Say deposit, withdraw, balance, or exit');
+          utterance.text = englishText || text;
+        }
+      } else {
+        utterance.lang = lang === 'en' ? 'en-US' : lang === 'hi' ? 'hi-IN' : 'kn-IN';
+      }
+      
+      utterance.rate = 0.9;
+      utterance.pitch = 1;
+      speechSynthesis.speak(utterance);
+    }
+    
+    // Load voices on page load
+    let voicesLoaded = false;
+    speechSynthesis.onvoiceschanged = () => {
+      voicesLoaded = true;
+    };
+
+    // Start voice recognition
+    function startListening(lang = 'en') {
+      if (!recognition) {
+        console.log("Speech recognition not supported");
+        alert("Your browser doesn't support speech recognition. Please use Chrome or Edge.");
+        return;
+      }
+
+      // Stop any existing recognition
+      try {
+        recognition.stop();
+      } catch(e) {}
+
+      recognition.lang = lang === 'en' ? 'en-US' : lang === 'hi' ? 'hi-IN' : 'kn-IN';
+      recognition.continuous = true;
+      recognition.interimResults = false;
+      
+      recognition.onresult = (event) => {
+        if (event.results.length > 0) {
+          const command = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
+          console.log("Heard:", command);
+          handleVoiceCommand(command, lang);
+        }
+      };
+
+      recognition.onerror = (event) => {
+        console.log("Recognition error:", event.error);
+        if (event.error === 'not-allowed') {
+          alert("Microphone permission denied. Please allow microphone access and refresh the page.");
+          isListening = false;
+        } else if (event.error === 'no-speech') {
+          // Restart listening if no speech detected
+          setTimeout(() => {
+            if (!isListening) return;
+            try {
+              recognition.start();
+            } catch(e) {
+              console.log("Could not restart:", e);
+            }
+          }, 1000);
+        } else if (event.error !== 'aborted') {
+          // Restart on other errors
+          setTimeout(() => {
+            if (!isListening) return;
+            try {
+              recognition.start();
+            } catch(e) {
+              console.log("Could not restart:", e);
+            }
+          }, 1000);
+        }
+      };
+
+      recognition.onend = () => {
+        // Auto-restart if we're still supposed to be listening
+        if (isListening) {
+          setTimeout(() => {
+            try {
+              recognition.start();
+            } catch(e) {
+              console.log("Could not restart:", e);
+              isListening = false;
+            }
+          }, 500);
+        }
+      };
+
+      // Start recognition
+      try {
+        recognition.start();
+        isListening = true;
+        console.log("🎤 Listening started for language:", lang);
+        // Show listening indicator
+        const indicator = document.getElementById('listeningIndicator');
+        if (indicator) {
+          indicator.style.display = 'block';
+        }
+      } catch(e) {
+        console.log("Error starting recognition:", e);
+        alert("Could not start voice recognition. Please check microphone permissions.");
+      }
+    }
+
+    // Handle voice commands
+    function handleVoiceCommand(command, lang) {
+      if (langCard && !langCard.classList.contains("hidden")) {
+        // Language selection commands
+        if (command.includes('english') || command.includes('eng') || command.includes('inglish')) {
+          langButtons[0].click();
+        } else if (command.includes('hindi') || command.includes('hind') || command.includes('हिंदी')) {
+          langButtons[1].click();
+        } else if (command.includes('kannada') || command.includes('kannad') || command.includes('ಕನ್ನಡ')) {
+          langButtons[2].click();
+        }
+      } else if (menu && !menu.classList.contains("hidden")) {
+        // Menu commands
+        if (lang === 'en') {
+          if (command.includes('deposit')) {
+            document.getElementById("btnDeposit").click();
+          } else if (command.includes('withdraw')) {
+            document.getElementById("btnWithdraw").click();
+          } else if (command.includes('balance')) {
+            document.getElementById("btnBalance").click();
+          } else if (command.includes('exit')) {
+            document.getElementById("btnExit").click();
+          }
+        } else if (lang === 'hi') {
+          if (command.includes('जमा') || command.includes('deposit')) {
+            document.getElementById("btnDeposit").click();
+          } else if (command.includes('निकाल') || command.includes('withdraw')) {
+            document.getElementById("btnWithdraw").click();
+          } else if (command.includes('बैलेंस') || command.includes('balance')) {
+            document.getElementById("btnBalance").click();
+          } else if (command.includes('बाहर') || command.includes('exit')) {
+            document.getElementById("btnExit").click();
+          }
+        } else if (lang === 'kn') {
+          // Kannada commands - also accept English as fallback
+          if (command.includes('ಠೇವಣಿ') || command.includes('deposit') || command.includes('tevana')) {
+            document.getElementById("btnDeposit").click();
+          } else if (command.includes('ತೆಗೆಯ') || command.includes('withdraw') || command.includes('tegey') || command.includes('hanna tegey')) {
+            document.getElementById("btnWithdraw").click();
+          } else if (command.includes('ಬ್ಯಾಲೆನ್ಸ್') || command.includes('balance') || command.includes('balence')) {
+            document.getElementById("btnBalance").click();
+          } else if (command.includes('ನಿರ್ಗಮಿಸಿ') || command.includes('exit') || command.includes('nirgamisi')) {
+            document.getElementById("btnExit").click();
+          }
+        }
+      }
+    }
+
+    // Add listening indicator
+    const listeningIndicator = document.createElement('div');
+    listeningIndicator.id = 'listeningIndicator';
+    listeningIndicator.innerHTML = '🎤 Listening...';
+    listeningIndicator.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #ff6b6b; color: white; padding: 10px 20px; border-radius: 25px; font-size: 14px; font-weight: bold; display: none; z-index: 1001; box-shadow: 0 4px 15px rgba(0,0,0,0.3); animation: pulse 2s infinite;';
+    document.body.appendChild(listeningIndicator);
+    
+    // Add pulse animation
+    const style = document.createElement('style');
+    style.textContent = '@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }';
+    document.head.appendChild(style);
+
+
+    // Speak language selection prompt on page load
+    window.addEventListener('load', () => {
+      // Load voices first
+      if (!voicesLoaded) {
+        const voices = speechSynthesis.getVoices();
+        if (voices.length > 0) voicesLoaded = true;
+      }
+      
+      setTimeout(() => {
+        speak(voicePrompts.en.langSelection, 'en');
+        setTimeout(() => {
+          listeningIndicator.style.display = 'block';
+          startListening('en');
+        }, 2000);
+      }, 1000);
+    });
+
+    // Update menu texts and links based on language
+    function updateMenu(lang) {
+      const menuTitle = document.getElementById("menuTitle");
+      const btnDeposit = document.getElementById("btnDeposit");
+      const btnWithdraw = document.getElementById("btnWithdraw");
+      const btnBalance = document.getElementById("btnBalance");
+      const btnExit = document.getElementById("btnExit");
+      const mainTitle = document.getElementById("mainTitle");
+      const mainSubtitle = document.getElementById("mainSubtitle");
+
+      selectedLang = lang;
+
+      if(lang === "kn") {
+        mainTitle.className = "title kannada-text";
+        mainSubtitle.className = "subtitle kannada-text";
+        menuTitle.className = "kannada-text";
+        mainTitle.innerText = "🤖 ಎಐ ವಾಯ್ಸ್ ಬ್ಯಾಂಕಿಂಗ್";
+        mainSubtitle.innerText = "ನಿಮ್ಮ ಸ್ಮಾರ್ಟ್ ವಾಯ್ಸ್ ಬ್ಯಾಂಕಿಂಗ್ ಸಹಾಯಕ";
+        menuTitle.innerText = "ಒಂದು ಆಯ್ಕೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ 🎙️";
+        btnDeposit.innerText = "💰 ಠೇವಣಿ";
+        btnDeposit.className = "btn btn-green kannada-text";
+        btnWithdraw.innerText = "📉 ಹಣ ತೆಗೆಯಿರಿ";
+        btnWithdraw.className = "btn btn-red kannada-text";
+        btnBalance.innerText = "📊 ಬ್ಯಾಲೆನ್ಸ್ ನೋಡಿ";
+        btnBalance.className = "btn btn-blue kannada-text";
+        btnExit.innerText = "❌ ನಿರ್ಗಮಿಸಿ";
+        btnExit.className = "btn btn-dark kannada-text";
+
+        btnDeposit.onclick = () => window.location.href = "deposit_kn.html";
+        btnWithdraw.onclick = () => window.location.href = "withdraw_kn.html";
+        btnBalance.onclick = () => window.location.href = "balance_kn.html";
+      } 
+      else if(lang === "hi") {
+        mainTitle.className = "title";
+        mainSubtitle.className = "subtitle";
+        menuTitle.className = "";
+        mainTitle.innerText = "🤖 एआई वॉयस बैंकिंग";
+        mainSubtitle.innerText = "आपका स्मार्ट वॉयस बैंकिंग सहायक";
+        menuTitle.innerText = "एक विकल्प चुनें 🎙️";
+        btnDeposit.innerText = "💰 जमा करें";
+        btnDeposit.className = "btn btn-green";
+        btnWithdraw.innerText = "📉 निकालें";
+        btnWithdraw.className = "btn btn-red";
+        btnBalance.innerText = "📊 बैलेंस देखें";
+        btnBalance.className = "btn btn-blue";
+        btnExit.innerText = "❌ बाहर जाएँ";
+        btnExit.className = "btn btn-dark";
+
+        btnDeposit.onclick = () => window.location.href = "deposit.hi.html";
+        btnWithdraw.onclick = () => window.location.href = "withdraw.hi.html";
+        btnBalance.onclick = () => window.location.href = "balence_hi.html";
+      } 
+      else {
+        mainTitle.className = "title";
+        mainSubtitle.className = "subtitle";
+        menuTitle.className = "";
+        mainTitle.innerText = "🤖 AI Voice Banking";
+        mainSubtitle.innerText = "Your smart voice assistant for banking";
+        menuTitle.innerText = "Choose an Option 🎙️";
+        btnDeposit.innerText = "💰 Deposit";
+        btnDeposit.className = "btn btn-green";
+        btnWithdraw.innerText = "📉 Withdraw";
+        btnWithdraw.className = "btn btn-red";
+        btnBalance.innerText = "📊 Balance";
+        btnBalance.className = "btn btn-blue";
+        btnExit.innerText = "❌ Exit";
+        btnExit.className = "btn btn-dark";
+
+        btnDeposit.onclick = () => window.location.href = "deposit.html";
+        btnWithdraw.onclick = () => window.location.href = "withdraw.html";
+        btnBalance.onclick = () => window.location.href = "balence.html";
+      }
+
+      // Exit always returns to language selection
+      btnExit.onclick = () => {
+        menu.classList.add("hidden");
+        langCard.classList.remove("hidden");
+        // Reset title and subtitle to English
+        document.getElementById("mainTitle").innerText = "🤖 AI Voice Banking";
+        document.getElementById("mainSubtitle").innerText = "Your smart voice assistant for banking";
+        if (recognition && isListening) {
+          recognition.stop();
+          isListening = false;
+          const indicator = document.getElementById('listeningIndicator');
+          if (indicator) indicator.style.display = 'none';
+        }
+        setTimeout(() => {
+          speak(voicePrompts.en.langSelection, 'en');
+          setTimeout(() => startListening('en'), 2000);
+        }, 500);
+      };
+    }
+
+    // Language selection - go directly to menu
+    langButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        const lang = btn.dataset.lang;
+        if (recognition && isListening) recognition.stop();
+        langCard.classList.add("hidden");
+        updateMenu(lang);
+        menu.classList.remove("hidden");
+        
+        // Speak menu options in selected language
+        setTimeout(() => {
+          speak(voicePrompts[lang].menuOptions, lang);
+          setTimeout(() => startListening(lang), 3000);
+        }, 500);
+      });
+    });
+
+    // Add microphone button for manual voice activation
+    const micButton = document.createElement('button');
+    micButton.innerHTML = '🎤';
+    micButton.id = 'micButton';
+    micButton.style.cssText = 'position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px; border-radius: 50%; background: #4facfe; color: white; border: none; font-size: 24px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 1000; transition: all 0.3s;';
+    micButton.onclick = () => {
+      const currentLang = selectedLang;
+        if (isListening) {
+        // Stop listening
+        try {
+          recognition.stop();
+          isListening = false;
+          micButton.style.background = '#4facfe';
+          micButton.innerHTML = '🎤';
+          listeningIndicator.style.display = 'none';
+        } catch(e) {}
+      } else {
+        // Start listening
+        if (langCard && !langCard.classList.contains("hidden")) {
+          speak(voicePrompts.en.langSelection, 'en');
+          setTimeout(() => startListening('en'), 2000);
+        } else if (menu && !menu.classList.contains("hidden")) {
+          speak(voicePrompts[currentLang].menuOptions, currentLang);
+          setTimeout(() => startListening(currentLang), 2000);
+        }
+      }
+    };
+    document.body.appendChild(micButton);
+
+  </script>
+</body>
+</html>

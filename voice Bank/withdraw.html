@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Withdraw - AI Voice Banking</title>
+  <link rel="stylesheet" href="style2.css">
+
+  <style>
+    /* Quick Amount Bubbles */
+    .quick-amounts {
+      margin-top: 15px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .amount-bubble {
+      background: #ff6b6b;
+      color: white;
+      padding: 10px 18px;
+      border-radius: 25px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+      border: none;
+    }
+
+    .amount-bubble:hover {
+      background: #ff3b3b;
+      transform: scale(1.1);
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-animation"></div>
+  <div class="container">
+    <h1 class="title">📉 Withdraw Money</h1>
+    <p class="subtitle">Fill in the details to complete withdrawal</p>
+
+    <form class="form-card fade-in">
+      
+      <div class="input-group">
+        <input type="text" maxlength="12" pattern="[0-9]{12}" required>
+        <label>Account Number (12 digits)</label>
+      </div>
+      
+      <div class="input-group">
+        <input type="number" id="withdrawAmount" required>
+        <label>Withdraw Amount (₹)</label>
+      </div>
+
+      <div class="input-group">
+        <input type="password" id="pin" maxlength="4" pattern="[0-9]{4}" required>
+        <label>PIN (4 digits)</label>
+      </div>
+
+      <!-- Quick Amount Bubbles -->
+      <div class="quick-amounts">
+        <button type="button" class="amount-bubble" data-value="500">₹500</button>
+        <button type="button" class="amount-bubble" data-value="1000">₹1000</button>
+        <button type="button" class="amount-bubble" data-value="2000">₹2000</button>
+        <button type="button" class="amount-bubble" data-value="5000">₹5000</button>
+      </div>
+
+      <button type="submit" class="btn-submit">✅ Withdraw</button>
+      <a href="index.html" class="btn-back">⬅️ Back to Menu</a>
+    </form>
+  </div>
+
+  <script>
+    // Add event listeners to bubbles
+    document.querySelectorAll(".amount-bubble").forEach(button => {
+      button.addEventListener("click", () => {
+        document.getElementById("withdrawAmount").value = button.dataset.value;
+      });
+    });
+
+    // Voice functionality
+    let recognition = null;
+    let isListening = false;
+    let voiceStep = 'account'; // account, amount, pin
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      recognition = new SpeechRecognition();
+      recognition.continuous = true; // Keep listening
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+    }
+
+    function speak(text) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-US';
+      utterance.rate = 0.9;
+      speechSynthesis.speak(utterance);
+    }
+
+    function startListening() {
+      if (!recognition) {
+        alert("Speech recognition not supported. Please use Chrome or Edge browser.");
+        return;
+      }
+      
+      try {
+        recognition.stop();
+      } catch(e) {}
+      
+      recognition.continuous = true;
+      recognition.onresult = (event) => {
+        if (event.results.length > 0) {
+          const command = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
+          console.log("Heard:", command);
+          handleVoiceCommand(command);
+        }
+      };
+      
+      recognition.onerror = (event) => {
+        console.log("Recognition error:", event.error);
+        if (event.error === 'not-allowed') {
+          alert("Microphone permission denied. Please allow microphone access.");
+          isListening = false;
+        } else if (event.error === 'no-speech') {
+          setTimeout(() => {
+            if (isListening) {
+              try { recognition.start(); } catch(e) {}
+            }
+          }, 1000);
+        } else if (event.error !== 'aborted') {
+          setTimeout(() => {
+            if (isListening) {
+              try { recognition.start(); } catch(e) {}
+            }
+          }, 1000);
+        }
+      };
+      
+      recognition.onend = () => {
+        if (isListening) {
+          setTimeout(() => {
+            try {
+              recognition.start();
+            } catch(e) {
+              isListening = false;
+            }
+          }, 500);
+        }
+      };
+      
+      try {
+        recognition.start();
+        isListening = true;
+        console.log("🎤 Listening started");
+      } catch(e) {
+        console.log("Error starting:", e);
+        alert("Could not start voice recognition. Please check microphone permissions.");
+      }
+    }
+
+    function handleVoiceCommand(command) {
+      const accountInput = form.querySelector("input[type='text']");
+      const amountInput = document.getElementById("withdrawAmount");
+      const pinInput = document.getElementById("pin");
+      
+      if (voiceStep === 'account') {
+        const accountMatch = command.match(/(?:account|number)\s*(\d+)|(\d{12})|(\d{4,12})/);
+        if (accountMatch) {
+          const accNum = accountMatch[1] || accountMatch[2];
+          accountInput.value = accNum;
+          speak(`Account number ${accNum} entered. Please say the withdrawal amount.`);
+          voiceStep = 'amount';
+          setTimeout(() => startListening(), 2000);
+        }
+      } else if (voiceStep === 'amount') {
+        const amountMatch = command.match(/(\d+)\s*(?:rupees|rupee|rs|amount)/i) || command.match(/(\d+)/);
+        if (amountMatch) {
+          const amount = amountMatch[1];
+          amountInput.value = amount;
+          speak(`Amount ${amount} rupees entered. Please say your four digit PIN.`);
+          voiceStep = 'pin';
+          setTimeout(() => startListening(), 2000);
+        } else if (command.includes('five hundred') || command.includes('500')) {
+          amountInput.value = 500;
+          speak("Five hundred rupees selected. Please say your PIN.");
+          voiceStep = 'pin';
+          setTimeout(() => startListening(), 2000);
+        } else if (command.includes('one thousand') || command.includes('1000')) {
+          amountInput.value = 1000;
+          speak("One thousand rupees selected. Please say your PIN.");
+          voiceStep = 'pin';
+          setTimeout(() => startListening(), 2000);
+        } else if (command.includes('two thousand') || command.includes('2000')) {
+          amountInput.value = 2000;
+          speak("Two thousand rupees selected. Please say your PIN.");
+          voiceStep = 'pin';
+          setTimeout(() => startListening(), 2000);
+        } else if (command.includes('five thousand') || command.includes('5000')) {
+          amountInput.value = 5000;
+          speak("Five thousand rupees selected. Please say your PIN.");
+          voiceStep = 'pin';
+          setTimeout(() => startListening(), 2000);
+        }
+      } else if (voiceStep === 'pin') {
+        const pinMatch = command.match(/(\d{4})/);
+        if (pinMatch) {
+          const pin = pinMatch[1];
+          pinInput.value = pin;
+          speak(`PIN entered. Processing withdrawal.`);
+          setTimeout(() => form.dispatchEvent(new Event('submit')), 1000);
+        } else {
+          speak("Please say your four digit PIN clearly.");
+          setTimeout(() => startListening(), 2000);
+        }
+      }
+    }
+
+    // Speak on page load
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        speak("Welcome to withdrawal page. Please say your account number first.");
+        setTimeout(() => startListening(), 3000);
+      }, 1000);
+    });
+
+    // Handle form submission
+    const form = document.querySelector("form");
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (recognition && isListening) recognition.stop();
+
+      const account_number = form.querySelector("input[type='text']").value.trim();
+      const withdraw_amount = parseFloat(document.getElementById("withdrawAmount").value);
+      const pin = document.getElementById("pin").value;
+
+      if (!account_number || !withdraw_amount || !pin) {
+        speak("Please fill in all fields");
+        return;
+      }
+
+      if (pin.length !== 4 || !/^\d+$/.test(pin)) {
+        speak("PIN must be exactly 4 digits");
+        return;
+      }
+
+      speak("Processing your withdrawal. Please wait.");
+
+      try {
+        const response = await fetch("http://localhost:5000/withdraw", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ account_number, withdraw_amount, pin })
+        });
+
+        const data = await response.json();
+        
+        if (response.ok) {
+          speak(`Withdrawal successful! Your new balance is ${data.new_balance} rupees.`);
+          alert(
+            `Withdrawal successful!\n\nAccount: ${data.account_number}\nName: ${data.full_name}\nBranch: ${data.branch_name}\nWithdrawn: ₹${data.withdraw_amount}\nOld Balance: ₹${data.old_balance}\nNew Balance: ₹${data.new_balance}`
+          );
+          form.reset();
+          voiceStep = 'account';
+        } else {
+          speak(data.message || "Withdrawal failed. Please try again.");
+          alert(data.message || "Withdrawal failed");
+          voiceStep = 'account';
+        }
+      } catch (error) {
+        speak("Server not reachable. Please make sure the server is running.");
+        alert("❌ Server not reachable. Please make sure the server is running.");
+        console.error("Error:", error);
+      }
+    });
+
+    // Microphone button
+    const micBtn = document.createElement('button');
+    micBtn.innerHTML = '🎤';
+    micBtn.style.cssText = 'position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px; border-radius: 50%; background: #ff6b6b; color: white; border: none; font-size: 24px; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 1000;';
+    micBtn.onclick = () => {
+      if (voiceStep === 'account') {
+        speak("Please say your account number.");
+      } else if (voiceStep === 'amount') {
+        speak("Please say the withdrawal amount.");
+      } else {
+        speak("Please say your four digit PIN.");
+      }
+      startListening();
+    };
+    document.body.appendChild(micBtn);
+  </script>
+</body>
+</html>

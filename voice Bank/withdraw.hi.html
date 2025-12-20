@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>निकासी - एआई वॉयस बैंकिंग</title>
+  <link rel="stylesheet" href="style2.css">
+</head>
+<style>
+    /* Quick Amount Bubbles */
+    .quick-amounts {
+      margin-top: 15px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .amount-bubble {
+      background: #4facfe;
+      color: white;
+      padding: 10px 18px;
+      border-radius: 25px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+      border: none;
+    }
+
+    .amount-bubble:hover {
+      background: #00c6ff;
+      transform: scale(1.1);
+    }
+  </style>
+<body>
+  <div class="bg-animation"></div>
+  <div class="container">
+    <h1 class="title">📉 पैसा निकालें</h1>
+    <p class="subtitle">पैसा निकालने के लिए विवरण भरें</p>
+
+    <form class="form-card fade-in">
+      <div class="input-group">
+        <input type="text" maxlength="12" pattern="[0-9]{12}" required>
+        <label>खाता संख्या (12 अंक)</label>
+      </div>
+
+      <div class="input-group">
+        <input type="number" id="withdrawAmount" required>
+        <label>निकासी राशि (₹)</label>
+      </div>
+
+      <div class="input-group">
+        <input type="password" id="pin" maxlength="4" pattern="[0-9]{4}" required>
+        <label>PIN (4 अंक)</label>
+      </div>
+
+      <!-- Quick Amount Bubbles -->
+      <div class="quick-amounts">
+        <button type="button" class="amount-bubble" data-value="500">₹500</button>
+        <button type="button" class="amount-bubble" data-value="1000">₹1000</button>
+        <button type="button" class="amount-bubble" data-value="2000">₹2000</button>
+        <button type="button" class="amount-bubble" data-value="5000">₹5000</button>
+      </div>
+
+      <button type="submit" class="btn-submit">✅ निकालें</button>
+      <a href="index.html" class="btn-back">⬅️ मेनू पर वापस जाएँ</a>
+    </form>
+  </div>
+
+  <script>
+    // Quick amount buttons
+    document.querySelectorAll(".amount-bubble").forEach(button => {
+      button.addEventListener("click", () => {
+        document.getElementById("withdrawAmount").value = button.dataset.value;
+      });
+    });
+
+    // Handle form submission
+    const form = document.querySelector("form");
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const account_number = form.querySelector("input[type='text']").value.trim();
+      const withdraw_amount = parseFloat(document.getElementById("withdrawAmount").value);
+      const pin = document.getElementById("pin").value;
+
+      if (!account_number || !withdraw_amount || !pin) {
+        alert("कृपया सभी फ़ील्ड भरें");
+        return;
+      }
+
+      if (pin.length !== 4 || !/^\d+$/.test(pin)) {
+        alert("PIN 4 अंकों का होना चाहिए");
+        return;
+      }
+
+      try {
+        const response = await fetch("http://localhost:5000/withdraw", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ account_number, withdraw_amount, pin })
+        });
+        const data = await response.json();
+        if (response.ok) {
+          alert(`निकासी सफल!\n\nखाता: ${data.account_number}\nनाम: ${data.full_name}\nनिकाली गई राशि: ₹${data.withdraw_amount}\nपुराना बैलेंस: ₹${data.old_balance}\nनया बैलेंस: ₹${data.new_balance}`);
+          form.reset();
+        } else {
+          alert(data.message || "निकासी विफल");
+        }
+      } catch (error) {
+        alert("❌ सर्वर तक पहुंच नहीं सकी");
+      }
+    });
+  </script>
+</body>
+</html>
