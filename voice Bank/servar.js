@@ -106,7 +106,11 @@ app.get("/api/balance/:accNo", (req, res) => {
 app.post("/register", (req, res) => {
   const { full_name, branch_name, initial_balance, pin, email, phone, account_number } = req.body;
 
-  console.log("Registration request received:", { full_name, branch_name, account_number, hasAccountNumber: !!account_number });
+  console.log("=== REGISTRATION REQUEST ===");
+  console.log("Full request body:", JSON.stringify(req.body, null, 2));
+  console.log("Account number from body:", account_number);
+  console.log("Account number type:", typeof account_number);
+  console.log("Account number truthy check:", !!account_number);
 
   if (!full_name || !branch_name || !pin) {
     return res.status(400).json({ message: "Missing required fields" });
@@ -120,18 +124,20 @@ app.post("/register", (req, res) => {
 
   // Check if account number is provided (handle string, number, or empty)
   // account_number will be undefined if not sent in request body
-  const accountNumberStr = account_number !== undefined && account_number !== null 
-    ? String(account_number).trim() 
-    : '';
-  const hasAccountNumber = accountNumberStr !== '' && accountNumberStr.length > 0;
+  const hasAccountNumber = account_number !== undefined && 
+                           account_number !== null && 
+                           account_number !== '' &&
+                           String(account_number).trim() !== '';
 
   console.log("Account number check:", {
     account_number,
     type: typeof account_number,
-    accountNumberStr,
     hasAccountNumber,
     isUndefined: account_number === undefined,
-    isNull: account_number === null
+    isNull: account_number === null,
+    isEmpty: account_number === '',
+    stringValue: String(account_number),
+    trimmed: String(account_number).trim()
   });
 
   // If account number is provided, validate and use it
@@ -141,16 +147,22 @@ app.post("/register", (req, res) => {
     
     console.log("Cleaned account number:", customAccountNumber);
     
+    console.log("Validating account number length:", customAccountNumber.length);
     if (!customAccountNumber || customAccountNumber.length < 4 || customAccountNumber.length > 12) {
+      console.log("ERROR: Account number validation failed - length:", customAccountNumber.length);
       return res.status(400).json({ message: "Account number must be between 4 and 12 digits" });
     }
+    console.log("✅ Account number length validation passed");
 
     const accountNumInt = parseInt(customAccountNumber, 10);
+    console.log("Parsed account number integer:", accountNumInt);
+    
     if (isNaN(accountNumInt) || accountNumInt <= 0) {
+      console.log("ERROR: Invalid account number format - isNaN:", isNaN(accountNumInt), "<= 0:", accountNumInt <= 0);
       return res.status(400).json({ message: "Invalid account number format" });
     }
 
-    console.log("Using custom account number:", accountNumInt);
+    console.log("✅ Using custom account number:", accountNumInt);
 
     // Check if account number already exists
     db.get("SELECT account_number FROM accounts WHERE account_number = ?", [accountNumInt], (err, row) => {
@@ -183,10 +195,12 @@ app.post("/register", (req, res) => {
         }
       );
     });
+    console.log("✅ Custom account number path - returning to prevent auto-generation");
     return; // IMPORTANT: Return here to prevent auto-generation
   } else {
     // Auto-generate 12-digit account number if not provided
-    console.log("No account number provided, auto-generating...");
+    console.log("⚠️ WARNING: No account number detected, auto-generating...");
+    console.log("This should not happen if account_number was sent in request!");
     db.get("SELECT MAX(account_number) as max_acc FROM accounts", (err, row) => {
       if (err) return res.status(500).json({ message: "Database error" });
 
