@@ -121,7 +121,7 @@
         <input type="password" class="login-input" id="pin" placeholder="4-digit PIN" maxlength="4" pattern="[0-9]{4}" required>
         
         <button type="submit" class="login-btn">Login</button>
-        <a href="index.html" class="back-btn">
+        <a href="#" class="back-btn" id="backToDashboard">
           <span>⬅️</span>
           <span>Back to Dashboard</span>
         </a>
@@ -475,6 +475,16 @@
       }
     };
     document.body.appendChild(micBtn);
+
+    // Handle "Back to Dashboard" button click
+    document.getElementById('backToDashboard').addEventListener('click', (e) => {
+      e.preventDefault();
+      // Clear any logged-in session to show initial landing page
+      sessionStorage.removeItem('loggedInAccount');
+      sessionStorage.removeItem('accountName');
+      // Navigate to index.html (will show language selection/auth card)
+      window.location.href = "index.html";
+    });
   </script>
 </body>
 </html>

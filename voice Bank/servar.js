@@ -104,7 +104,7 @@ app.get("/api/balance/:accNo", (req, res) => {
 
 // User Registration endpoint
 app.post("/register", (req, res) => {
-  const { full_name, branch_name, initial_balance, pin, email, phone } = req.body;
+  const { full_name, branch_name, initial_balance, pin, email, phone, account_number } = req.body;
 
   if (!full_name || !branch_name || !pin) {
     return res.status(400).json({ message: "Missing required fields" });
@@ -114,33 +114,80 @@ app.post("/register", (req, res) => {
     return res.status(400).json({ message: "PIN must be 4 digits" });
   }
 
-  // Generate 12-digit account number
-  db.get("SELECT MAX(account_number) as max_acc FROM accounts", (err, row) => {
-    if (err) return res.status(500).json({ message: "Database error" });
+  const balance = initial_balance ? parseFloat(initial_balance) : 0;
 
-    // Start from 100000000000 (12 digits) or increment from max
-    const baseAccount = 100000000000; // 12-digit starting number
-    const maxAcc = row.max_acc || (baseAccount - 1);
-    const newAccountNumber = maxAcc >= baseAccount ? maxAcc + 1 : baseAccount;
-    const balance = initial_balance ? parseFloat(initial_balance) : 0;
+  // If account number is provided, validate and use it
+  if (account_number && account_number.trim() !== '') {
+    const customAccountNumber = account_number.trim().replace(/\D/g, ''); // Remove non-numeric characters
+    
+    if (customAccountNumber.length < 4 || customAccountNumber.length > 12) {
+      return res.status(400).json({ message: "Account number must be between 4 and 12 digits" });
+    }
 
-    db.run(
-      `INSERT INTO accounts (account_number, full_name, branch_name, balance, pin, email, phone)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [newAccountNumber, full_name, branch_name, balance, pin, email || null, phone || null],
-      (err2) => {
-        if (err2) return res.status(500).json({ message: "Registration failed" });
+    const accountNumInt = parseInt(customAccountNumber, 10);
+    if (isNaN(accountNumInt)) {
+      return res.status(400).json({ message: "Invalid account number format" });
+    }
 
-        res.json({
-          message: "✅ Registration successful",
-          account_number: newAccountNumber,
-          full_name: full_name,
-          branch_name: branch_name,
-          balance: balance
-        });
+    // Check if account number already exists
+    db.get("SELECT account_number FROM accounts WHERE account_number = ?", [accountNumInt], (err, row) => {
+      if (err) return res.status(500).json({ message: "Database error" });
+      
+      if (row) {
+        return res.status(400).json({ message: "Account number already exists. Please choose a different one." });
       }
-    );
-  });
+
+      // Use the custom account number
+      db.run(
+        `INSERT INTO accounts (account_number, full_name, branch_name, balance, pin, email, phone)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [accountNumInt, full_name, branch_name, balance, pin, email || null, phone || null],
+        (err2) => {
+          if (err2) {
+            if (err2.message.includes('UNIQUE constraint')) {
+              return res.status(400).json({ message: "Account number already exists. Please choose a different one." });
+            }
+            return res.status(500).json({ message: "Registration failed" });
+          }
+
+          res.json({
+            message: "✅ Registration successful",
+            account_number: accountNumInt,
+            full_name: full_name,
+            branch_name: branch_name,
+            balance: balance
+          });
+        }
+      );
+    });
+  } else {
+    // Auto-generate 12-digit account number if not provided
+    db.get("SELECT MAX(account_number) as max_acc FROM accounts", (err, row) => {
+      if (err) return res.status(500).json({ message: "Database error" });
+
+      // Start from 100000000000 (12 digits) or increment from max
+      const baseAccount = 100000000000; // 12-digit starting number
+      const maxAcc = row.max_acc || (baseAccount - 1);
+      const newAccountNumber = maxAcc >= baseAccount ? maxAcc + 1 : baseAccount;
+
+      db.run(
+        `INSERT INTO accounts (account_number, full_name, branch_name, balance, pin, email, phone)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [newAccountNumber, full_name, branch_name, balance, pin, email || null, phone || null],
+        (err2) => {
+          if (err2) return res.status(500).json({ message: "Registration failed" });
+
+          res.json({
+            message: "✅ Registration successful",
+            account_number: newAccountNumber,
+            full_name: full_name,
+            branch_name: branch_name,
+            balance: balance
+          });
+        }
+      );
+    });
+  }
 });
 
 // Verify PIN endpoint

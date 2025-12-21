@@ -107,7 +107,7 @@
       <form id="registerForm">
         <input type="text" class="register-input" id="fullName" placeholder="Full Name" required>
         <input type="tel" class="register-input" id="phone" placeholder="Mobile Number" pattern="[0-9]{10}" maxlength="10">
-        <input type="text" class="register-input" id="accountNumber" placeholder="Account Number (Optional - Auto-generated if empty)" maxlength="12" pattern="[0-9]{12}">
+        <input type="text" class="register-input" id="accountNumber" placeholder="Account Number (Optional - Auto-generated if empty)" maxlength="12" pattern="[0-9]{4,12}">
         <input type="password" class="register-input" id="pin" placeholder="4-digit PIN" maxlength="4" pattern="[0-9]{4}" required>
         
         <button type="submit" class="register-btn">Register</button>
@@ -146,7 +146,7 @@
         title: "Register",
         namePlaceholder: "Full Name",
         phonePlaceholder: "Mobile Number",
-        accountPlaceholder: "Account Number (Optional - Auto-generated if empty)",
+        accountPlaceholder: "Account Number (Optional - Enter 4-12 digits or leave empty for auto-generation)",
         pinPlaceholder: "4-digit PIN",
         button: "Register",
         back: "Back to Dashboard",
@@ -158,7 +158,7 @@
         title: "पंजीकरण",
         namePlaceholder: "पूरा नाम",
         phonePlaceholder: "मोबाइल नंबर",
-        accountPlaceholder: "खाता संख्या (वैकल्पिक - खाली होने पर स्वचालित रूप से जेनरेट)",
+        accountPlaceholder: "खाता संख्या (वैकल्पिक - 4-12 अंक दर्ज करें या खाली छोड़ें)",
         pinPlaceholder: "4 अंकों का PIN",
         button: "पंजीकरण करें",
         back: "डैशबोर्ड पर वापस जाएँ",
@@ -170,7 +170,7 @@
         title: "ನೋಂದಣಿ",
         namePlaceholder: "ಪೂರ್ಣ ಹೆಸರು",
         phonePlaceholder: "ಮೊಬೈಲ್ ಸಂಖ್ಯೆ",
-        accountPlaceholder: "ಖಾತೆ ಸಂಖ್ಯೆ (ಐಚ್ಛಿಕ - ಖಾಲಿ ಇದ್ದರೆ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಉತ್ಪಾದಿಸಲಾಗುತ್ತದೆ)",
+        accountPlaceholder: "ಖಾತೆ ಸಂಖ್ಯೆ (ಐಚ್ಛಿಕ - 4-12 ಅಂಕೆಗಳನ್ನು ನಮೂದಿಸಿ ಅಥವಾ ಖಾಲಿ ಬಿಡಿ)",
         pinPlaceholder: "4 ಅಂಕೆಗಳ PIN",
         button: "ನೋಂದಣಿ ಮಾಡಿ",
         back: "ಡ್ಯಾಶ್ಬೋರ್ಡ್ಗೆ ಹಿಂತಿರುಗಿ",
@@ -345,10 +345,24 @@
         return;
       }
 
+      // Validate account number if provided
+      if (account_number && account_number.trim() !== '') {
+        const cleanAccountNumber = account_number.replace(/\D/g, ''); // Remove non-numeric
+        if (cleanAccountNumber.length < 4 || cleanAccountNumber.length > 12) {
+          const msg = storedLang === 'hi'
+            ? "खाता संख्या 4 से 12 अंकों के बीच होनी चाहिए"
+            : storedLang === 'kn'
+            ? "ಖಾತೆ ಸಂಖ್ಯೆ 4 ರಿಂದ 12 ಅಂಕೆಗಳ ನಡುವೆ ಇರಬೇಕು"
+            : "Account number must be between 4 and 12 digits";
+          speak(msg, storedLang);
+          return;
+        }
+      }
+
       speak("Processing your registration. Please wait.");
 
       try {
-        // If account number provided, check if it exists, otherwise auto-generate
+        // Prepare request body with optional account number
         const requestBody = {
           full_name,
           branch_name: "Main Branch", // Default branch
@@ -358,8 +372,11 @@
           email: null
         };
 
-        // If account number is provided, we'll need to handle it differently
-        // For now, let's auto-generate account numbers
+        // If account number is provided, include it in the request
+        if (account_number && account_number.trim() !== '') {
+          requestBody.account_number = account_number.trim();
+        }
+
         const response = await fetch("http://localhost:5000/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
