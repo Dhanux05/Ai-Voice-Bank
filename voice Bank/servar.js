@@ -106,6 +106,8 @@ app.get("/api/balance/:accNo", (req, res) => {
 app.post("/register", (req, res) => {
   const { full_name, branch_name, initial_balance, pin, email, phone, account_number } = req.body;
 
+  console.log("Registration request received:", { full_name, branch_name, account_number, hasAccountNumber: !!account_number });
+
   if (!full_name || !branch_name || !pin) {
     return res.status(400).json({ message: "Missing required fields" });
   }
@@ -117,8 +119,11 @@ app.post("/register", (req, res) => {
   const balance = initial_balance ? parseFloat(initial_balance) : 0;
 
   // If account number is provided, validate and use it
-  if (account_number && account_number.trim() !== '') {
-    const customAccountNumber = account_number.trim().replace(/\D/g, ''); // Remove non-numeric characters
+  if (account_number !== undefined && account_number !== null && String(account_number).trim() !== '') {
+    console.log("Custom account number received:", account_number, "Type:", typeof account_number);
+    const customAccountNumber = String(account_number).trim().replace(/\D/g, ''); // Remove non-numeric characters
+    
+    console.log("Cleaned account number:", customAccountNumber);
     
     if (customAccountNumber.length < 4 || customAccountNumber.length > 12) {
       return res.status(400).json({ message: "Account number must be between 4 and 12 digits" });
@@ -128,6 +133,8 @@ app.post("/register", (req, res) => {
     if (isNaN(accountNumInt)) {
       return res.status(400).json({ message: "Invalid account number format" });
     }
+
+    console.log("Using custom account number:", accountNumInt);
 
     // Check if account number already exists
     db.get("SELECT account_number FROM accounts WHERE account_number = ?", [accountNumInt], (err, row) => {
@@ -162,6 +169,7 @@ app.post("/register", (req, res) => {
     });
   } else {
     // Auto-generate 12-digit account number if not provided
+    console.log("No account number provided, auto-generating...");
     db.get("SELECT MAX(account_number) as max_acc FROM accounts", (err, row) => {
       if (err) return res.status(500).json({ message: "Database error" });
 

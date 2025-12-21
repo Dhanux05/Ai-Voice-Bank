@@ -345,9 +345,10 @@
         return;
       }
 
-      // Validate account number if provided
+      // Clean and validate account number if provided
+      let cleanAccountNumber = null;
       if (account_number && account_number.trim() !== '') {
-        const cleanAccountNumber = account_number.replace(/\D/g, ''); // Remove non-numeric
+        cleanAccountNumber = account_number.replace(/\D/g, ''); // Remove non-numeric
         if (cleanAccountNumber.length < 4 || cleanAccountNumber.length > 12) {
           const msg = storedLang === 'hi'
             ? "खाता संख्या 4 से 12 अंकों के बीच होनी चाहिए"
@@ -372,10 +373,15 @@
           email: null
         };
 
-        // If account number is provided, include it in the request
-        if (account_number && account_number.trim() !== '') {
-          requestBody.account_number = account_number.trim();
+        // If account number is provided, include it in the request (use cleaned version)
+        if (cleanAccountNumber && cleanAccountNumber.length > 0) {
+          requestBody.account_number = cleanAccountNumber;
+          console.log("Sending custom account number:", cleanAccountNumber);
+        } else {
+          console.log("No account number provided, will auto-generate");
         }
+
+        console.log("Request body:", JSON.stringify(requestBody));
 
         const response = await fetch("http://localhost:5000/register", {
           method: "POST",
