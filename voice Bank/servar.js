@@ -116,9 +116,10 @@ app.post("/register", (req, res) => {
     return res.status(400).json({ message: "Missing required fields" });
   }
 
-  // Account number is now required
+  // Account number is REQUIRED - must be provided by user
   if (!account_number || account_number === '' || String(account_number).trim() === '') {
-    return res.status(400).json({ message: "Account number is required" });
+    console.log("ERROR: Account number is required but not provided");
+    return res.status(400).json({ message: "Account number is required. Please provide your account number." });
   }
 
   if (pin.length !== 4 || !/^\d+$/.test(pin)) {
@@ -126,12 +127,6 @@ app.post("/register", (req, res) => {
   }
 
   const balance = initial_balance ? parseFloat(initial_balance) : 0;
-
-  // Account number is now REQUIRED - validate it
-  if (!account_number || account_number === '' || String(account_number).trim() === '') {
-    console.log("ERROR: Account number is required but not provided");
-    return res.status(400).json({ message: "Account number is required" });
-  }
 
   console.log("=== PROCESSING ACCOUNT NUMBER ===");
   console.log("Account number received:", account_number);
