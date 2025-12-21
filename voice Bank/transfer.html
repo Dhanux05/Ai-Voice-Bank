@@ -254,19 +254,19 @@
       
       const message = `
         <div style="text-align: center; padding: 20px;">
-          <h2 style="color: #32CD32; margin-bottom: 15px; background: #32CD32; color: white; padding: 15px; border-radius: 10px 10px 0 0; margin: -30px -30px 20px -30px;">Transfer successful!</h2>
-          <p><strong>From Account:</strong> ****${String(transactionData.from_account).slice(-4)}</p>
-          <p><strong>To Account:</strong> ****${String(transactionData.to_account).slice(-4)}</p>
-          <p><strong>Amount:</strong> ₹${transactionData.amount.toLocaleString('en-IN')}</p>
-          <p><strong>Sender Balance After Transfer:</strong> ₹${transactionData.sender_balance_after.toLocaleString('en-IN')}</p>
-          <p><strong>Time:</strong> ${new Date().toLocaleString('en-IN')}</p>
+          <h2 style="color: #4caf50; margin-bottom: 15px; text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);">✅ Transfer successful!</h2>
+          <p style="color: #ffffff;"><strong style="color: #b0bec5;">From Account:</strong> ****${String(transactionData.from_account).slice(-4)}</p>
+          <p style="color: #ffffff;"><strong style="color: #b0bec5;">To Account:</strong> ****${String(transactionData.to_account).slice(-4)}</p>
+          <p style="color: #ffffff;"><strong style="color: #b0bec5;">Amount:</strong> ₹${transactionData.amount.toLocaleString('en-IN')}</p>
+          <p style="color: #ffffff;"><strong style="color: #b0bec5;">Sender Balance After Transfer:</strong> ₹${transactionData.sender_balance_after.toLocaleString('en-IN')}</p>
+          <p style="color: #ffffff;"><strong style="color: #b0bec5;">Time:</strong> ${new Date().toLocaleString('en-IN')}</p>
           <div style="margin-top: 20px;">
             <button id="downloadReceiptBtn" 
-                    style="background: #4facfe; color: white; border: none; padding: 12px 30px; border-radius: 5px; font-size: 16px; cursor: pointer; margin: 5px;">
+                    style="background: #4facfe; color: white; border: none; padding: 12px 30px; border-radius: 5px; font-size: 16px; cursor: pointer; margin: 5px; box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);">
               📥 Download Receipt
             </button>
             <button id="closeModalBtn" 
-                    style="background: #6c757d; color: white; border: none; padding: 12px 30px; border-radius: 5px; font-size: 16px; cursor: pointer; margin: 5px;">
+                    style="background: #424242; color: white; border: none; padding: 12px 30px; border-radius: 5px; font-size: 16px; cursor: pointer; margin: 5px;">
               Close
             </button>
           </div>
@@ -275,10 +275,10 @@
       
       const modal = document.createElement('div');
       modal.id = 'successModal';
-      modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; display: flex; align-items: center; justify-content: center;';
+      modal.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10000; display: flex; align-items: center; justify-content: center;';
       
       const modalContent = document.createElement('div');
-      modalContent.style.cssText = 'background: #2a2a2a; padding: 0; border-radius: 15px; max-width: 500px; width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.3); color: white;';
+      modalContent.style.cssText = 'background: rgba(15, 27, 46, 0.95); padding: 30px; border-radius: 15px; max-width: 500px; width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 20px rgba(33, 150, 243, 0.3); border: 1px solid rgba(33, 150, 243, 0.3);';
       modalContent.innerHTML = message;
       
       modal.appendChild(modalContent);
