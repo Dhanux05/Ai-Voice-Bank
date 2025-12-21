@@ -122,26 +122,38 @@ app.post("/register", (req, res) => {
 
   const balance = initial_balance ? parseFloat(initial_balance) : 0;
 
-  // Check if account number is provided (handle string, number, or empty)
-  // account_number will be undefined if not sent in request body
-  const hasAccountNumber = account_number !== undefined && 
-                           account_number !== null && 
-                           account_number !== '' &&
-                           String(account_number).trim() !== '';
+  // Check if account number is provided - be very explicit
+  // First, check if it exists in the request body at all
+  const accountNumberExists = 'account_number' in req.body;
+  const accountNumberValue = req.body.account_number;
+  
+  // Convert to string and check if it's a valid non-empty value
+  const accountNumberStr = accountNumberValue !== undefined && accountNumberValue !== null 
+    ? String(accountNumberValue).trim() 
+    : '';
+  
+  const hasAccountNumber = accountNumberStr !== '' && accountNumberStr.length > 0;
 
-  console.log("Account number check:", {
+  console.log("=== ACCOUNT NUMBER DETECTION ===");
+  console.log("accountNumberExists in body:", accountNumberExists);
+  console.log("accountNumberValue:", accountNumberValue);
+  console.log("accountNumberStr:", accountNumberStr);
+  console.log("hasAccountNumber:", hasAccountNumber);
+  console.log("Full check:", {
     account_number,
-    type: typeof account_number,
+    accountNumberExists,
+    accountNumberValue,
+    accountNumberStr,
     hasAccountNumber,
+    type: typeof account_number,
     isUndefined: account_number === undefined,
     isNull: account_number === null,
-    isEmpty: account_number === '',
-    stringValue: String(account_number),
-    trimmed: String(account_number).trim()
+    isEmpty: account_number === ''
   });
 
   // If account number is provided, validate and use it
   if (hasAccountNumber) {
+    console.log("✅ ENTERING CUSTOM ACCOUNT NUMBER PATH");
     console.log("Custom account number received:", account_number, "Type:", typeof account_number);
     const customAccountNumber = String(account_number).trim().replace(/\D/g, ''); // Remove non-numeric characters
     
@@ -199,8 +211,13 @@ app.post("/register", (req, res) => {
     return; // IMPORTANT: Return here to prevent auto-generation
   } else {
     // Auto-generate 12-digit account number if not provided
-    console.log("⚠️ WARNING: No account number detected, auto-generating...");
-    console.log("This should not happen if account_number was sent in request!");
+    console.log("⚠️⚠️⚠️ WARNING: No account number detected, auto-generating...");
+    console.log("⚠️ This should not happen if account_number was sent in request!");
+    console.log("⚠️ Request body keys:", Object.keys(req.body));
+    console.log("⚠️ account_number value:", req.body.account_number);
+    console.log("⚠️ accountNumberExists:", accountNumberExists);
+    console.log("⚠️ accountNumberValue:", accountNumberValue);
+    console.log("⚠️ accountNumberStr:", accountNumberStr);
     db.get("SELECT MAX(account_number) as max_acc FROM accounts", (err, row) => {
       if (err) return res.status(500).json({ message: "Database error" });
 
