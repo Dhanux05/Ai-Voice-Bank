@@ -352,4 +352,286 @@ app.get("/api/transactions/:accNo", (req, res) => {
     });
 });
 
+// ==================== ADMIN ENDPOINTS ====================
+
+// Get all users/accounts
+app.get("/api/admin/users", (req, res) => {
+  db.all("SELECT account_number, full_name, branch_name, balance, email, phone FROM accounts ORDER BY account_number", 
+    (err, rows) => {
+      if (err) {
+        console.error("Get all users error:", err);
+        return res.status(500).json({ error: "Database error" });
+      }
+      res.json({
+        success: true,
+        count: rows.length,
+        users: rows
+      });
+    });
+});
+
+// Get single user by account number
+app.get("/api/admin/users/:accountNumber", (req, res) => {
+  const accNum = parseInt(req.params.accountNumber, 10);
+  if (isNaN(accNum)) {
+    return res.status(400).json({ error: "Invalid account number format" });
+  }
+
+  db.get("SELECT account_number, full_name, branch_name, balance, email, phone FROM accounts WHERE account_number = ?", 
+    [accNum], (err, row) => {
+      if (err) {
+        console.error("Get user error:", err);
+        return res.status(500).json({ error: "Database error" });
+      }
+      if (!row) {
+        return res.status(404).json({ error: "Account not found" });
+      }
+      res.json({
+        success: true,
+        user: row
+      });
+    });
+});
+
+// Update user balance
+app.put("/api/admin/users/:accountNumber/balance", (req, res) => {
+  const accNum = parseInt(req.params.accountNumber, 10);
+  const { balance } = req.body;
+
+  if (isNaN(accNum)) {
+    return res.status(400).json({ error: "Invalid account number format" });
+  }
+
+  if (balance === undefined || balance === null) {
+    return res.status(400).json({ error: "Balance is required" });
+  }
+
+  const newBalance = parseFloat(balance);
+  if (isNaN(newBalance) || newBalance < 0) {
+    return res.status(400).json({ error: "Invalid balance amount" });
+  }
+
+  // Check if account exists
+  db.get("SELECT * FROM accounts WHERE account_number = ?", [accNum], (err, row) => {
+    if (err) {
+      console.error("Database error:", err);
+      return res.status(500).json({ error: "Database error" });
+    }
+    if (!row) {
+      return res.status(404).json({ error: "Account not found" });
+    }
+
+    const oldBalance = row.balance;
+
+    // Update balance
+    db.run("UPDATE accounts SET balance = ? WHERE account_number = ?", 
+      [newBalance, accNum], (err2) => {
+        if (err2) {
+          console.error("Update balance error:", err2);
+          return res.status(500).json({ error: "Failed to update balance" });
+        }
+
+        // Log admin transaction
+        const transactionId = `ADMIN${Date.now()}${Math.floor(Math.random() * 10000)}`;
+        db.run(`INSERT INTO transactions (transaction_id, from_account, to_account, transaction_type, amount, balance_after)
+          VALUES (?, ?, ?, 'Admin Balance Update', ?, ?)`,
+          [transactionId, accNum, accNum, newBalance - oldBalance, newBalance], (err3) => {
+            if (err3) console.error("Transaction log error:", err3);
+          });
+
+        res.json({
+          success: true,
+          message: "Balance updated successfully",
+          account_number: accNum,
+          old_balance: oldBalance,
+          new_balance: newBalance
+        });
+      });
+  });
+});
+
+// Update user account details
+app.put("/api/admin/users/:accountNumber", (req, res) => {
+  const accNum = parseInt(req.params.accountNumber, 10);
+  const { full_name, branch_name, email, phone, pin } = req.body;
+
+  if (isNaN(accNum)) {
+    return res.status(400).json({ error: "Invalid account number format" });
+  }
+
+  // Check if account exists
+  db.get("SELECT * FROM accounts WHERE account_number = ?", [accNum], (err, row) => {
+    if (err) {
+      console.error("Database error:", err);
+      return res.status(500).json({ error: "Database error" });
+    }
+    if (!row) {
+      return res.status(404).json({ error: "Account not found" });
+    }
+
+    // Validate PIN if provided
+    if (pin && (pin.length !== 4 || !/^\d+$/.test(pin))) {
+      return res.status(400).json({ error: "PIN must be 4 digits" });
+    }
+
+    // Build update query dynamically based on provided fields
+    const updates = [];
+    const values = [];
+
+    if (full_name !== undefined) {
+      updates.push("full_name = ?");
+      values.push(full_name);
+    }
+    if (branch_name !== undefined) {
+      updates.push("branch_name = ?");
+      values.push(branch_name);
+    }
+    if (email !== undefined) {
+      updates.push("email = ?");
+      values.push(email);
+    }
+    if (phone !== undefined) {
+      updates.push("phone = ?");
+      values.push(phone);
+    }
+    if (pin !== undefined) {
+      updates.push("pin = ?");
+      values.push(pin);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: "No fields to update" });
+    }
+
+    values.push(accNum);
+
+    const updateQuery = `UPDATE accounts SET ${updates.join(", ")} WHERE account_number = ?`;
+
+    db.run(updateQuery, values, (err2) => {
+      if (err2) {
+        console.error("Update account error:", err2);
+        return res.status(500).json({ error: "Failed to update account" });
+      }
+
+      // Get updated account
+      db.get("SELECT account_number, full_name, branch_name, balance, email, phone FROM accounts WHERE account_number = ?", 
+        [accNum], (err3, updatedRow) => {
+          if (err3) {
+            console.error("Get updated account error:", err3);
+            return res.status(500).json({ error: "Account updated but failed to retrieve" });
+          }
+
+          res.json({
+            success: true,
+            message: "Account updated successfully",
+            user: updatedRow
+          });
+        });
+    });
+  });
+});
+
+// Delete user account
+app.delete("/api/admin/users/:accountNumber", (req, res) => {
+  const accNum = parseInt(req.params.accountNumber, 10);
+
+  if (isNaN(accNum)) {
+    return res.status(400).json({ error: "Invalid account number format" });
+  }
+
+  // Check if account exists
+  db.get("SELECT * FROM accounts WHERE account_number = ?", [accNum], (err, row) => {
+    if (err) {
+      console.error("Database error:", err);
+      return res.status(500).json({ error: "Database error" });
+    }
+    if (!row) {
+      return res.status(404).json({ error: "Account not found" });
+    }
+
+    // Delete account
+    db.run("DELETE FROM accounts WHERE account_number = ?", [accNum], (err2) => {
+      if (err2) {
+        console.error("Delete account error:", err2);
+        return res.status(500).json({ error: "Failed to delete account" });
+      }
+
+      res.json({
+        success: true,
+        message: "Account deleted successfully",
+        deleted_account: accNum
+      });
+    });
+  });
+});
+
+// Get all transactions (admin view)
+app.get("/api/admin/transactions", (req, res) => {
+  const limit = parseInt(req.query.limit) || 100;
+  const offset = parseInt(req.query.offset) || 0;
+
+  db.all(`SELECT * FROM transactions 
+          ORDER BY timestamp DESC 
+          LIMIT ? OFFSET ?`,
+    [limit, offset], (err, rows) => {
+      if (err) {
+        console.error("Get all transactions error:", err);
+        return res.status(500).json({ error: "Database error" });
+      }
+
+      // Get total count
+      db.get("SELECT COUNT(*) as total FROM transactions", (err2, countRow) => {
+        if (err2) {
+          console.error("Count error:", err2);
+          return res.status(500).json({ error: "Database error" });
+        }
+
+        res.json({
+          success: true,
+          total: countRow.total,
+          limit: limit,
+          offset: offset,
+          transactions: rows
+        });
+      });
+    });
+});
+
+// Get account statistics
+app.get("/api/admin/stats", (req, res) => {
+  db.get(`SELECT 
+            COUNT(*) as total_accounts,
+            SUM(balance) as total_balance,
+            AVG(balance) as average_balance,
+            MIN(balance) as min_balance,
+            MAX(balance) as max_balance
+          FROM accounts`, (err, stats) => {
+    if (err) {
+      console.error("Stats error:", err);
+      return res.status(500).json({ error: "Database error" });
+    }
+
+    db.get("SELECT COUNT(*) as total_transactions FROM transactions", (err2, txStats) => {
+      if (err2) {
+        console.error("Transaction stats error:", err2);
+        return res.status(500).json({ error: "Database error" });
+      }
+
+      res.json({
+        success: true,
+        accounts: {
+          total: stats.total_accounts,
+          total_balance: stats.total_balance || 0,
+          average_balance: Math.round(stats.average_balance || 0),
+          min_balance: stats.min_balance || 0,
+          max_balance: stats.max_balance || 0
+        },
+        transactions: {
+          total: txStats.total_transactions
+        }
+      });
+    });
+  });
+});
+
 app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
