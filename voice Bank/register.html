@@ -335,6 +335,11 @@
       const account_number = document.getElementById("accountNumber").value.trim();
       const pin = document.getElementById("pin").value;
 
+      console.log("=== REGISTRATION FORM VALUES ===");
+      console.log("Account number input (raw):", document.getElementById("accountNumber").value);
+      console.log("Account number (trimmed):", account_number);
+      console.log("Account number length:", account_number.length);
+
       if (!full_name || !pin) {
         speak("Please enter full name and PIN");
         return;
@@ -348,8 +353,12 @@
       // Clean and validate account number if provided
       let cleanAccountNumber = null;
       if (account_number && account_number.trim() !== '') {
+        console.log("Account number provided, cleaning...");
         cleanAccountNumber = account_number.replace(/\D/g, ''); // Remove non-numeric
+        console.log("Cleaned account number:", cleanAccountNumber, "Length:", cleanAccountNumber.length);
+        
         if (cleanAccountNumber.length < 4 || cleanAccountNumber.length > 12) {
+          console.log("ERROR: Account number length validation failed");
           const msg = storedLang === 'hi'
             ? "खाता संख्या 4 से 12 अंकों के बीच होनी चाहिए"
             : storedLang === 'kn'
@@ -358,6 +367,9 @@
           speak(msg, storedLang);
           return;
         }
+        console.log("✅ Account number validation passed");
+      } else {
+        console.log("⚠️ No account number provided in input field");
       }
 
       speak("Processing your registration. Please wait.");
@@ -375,15 +387,23 @@
 
         // If account number is provided, include it in the request (use cleaned version)
         // Only add account_number to request if it exists - don't send null or empty
+        console.log("=== PREPARING REQUEST BODY ===");
+        console.log("cleanAccountNumber value:", cleanAccountNumber);
+        console.log("cleanAccountNumber type:", typeof cleanAccountNumber);
+        console.log("cleanAccountNumber length:", cleanAccountNumber ? cleanAccountNumber.length : 0);
+        
         if (cleanAccountNumber && cleanAccountNumber.length > 0) {
           requestBody.account_number = String(cleanAccountNumber); // Ensure it's a string
-          console.log("Sending custom account number:", cleanAccountNumber, "Type:", typeof cleanAccountNumber);
+          console.log("✅ ADDING account_number to request body:", requestBody.account_number);
         } else {
-          console.log("No account number provided, will auto-generate");
+          console.log("⚠️ NOT adding account_number to request body - will auto-generate");
           // Don't include account_number in request body at all if not provided
         }
 
+        console.log("=== FINAL REQUEST BODY ===");
         console.log("Request body:", JSON.stringify(requestBody, null, 2));
+        console.log("Has account_number key?", 'account_number' in requestBody);
+        console.log("account_number value in requestBody:", requestBody.account_number);
 
         const response = await fetch("http://localhost:5000/register", {
           method: "POST",
