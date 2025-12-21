@@ -118,19 +118,35 @@ app.post("/register", (req, res) => {
 
   const balance = initial_balance ? parseFloat(initial_balance) : 0;
 
+  // Check if account number is provided (handle string, number, or empty)
+  // account_number will be undefined if not sent in request body
+  const accountNumberStr = account_number !== undefined && account_number !== null 
+    ? String(account_number).trim() 
+    : '';
+  const hasAccountNumber = accountNumberStr !== '' && accountNumberStr.length > 0;
+
+  console.log("Account number check:", {
+    account_number,
+    type: typeof account_number,
+    accountNumberStr,
+    hasAccountNumber,
+    isUndefined: account_number === undefined,
+    isNull: account_number === null
+  });
+
   // If account number is provided, validate and use it
-  if (account_number !== undefined && account_number !== null && String(account_number).trim() !== '') {
+  if (hasAccountNumber) {
     console.log("Custom account number received:", account_number, "Type:", typeof account_number);
     const customAccountNumber = String(account_number).trim().replace(/\D/g, ''); // Remove non-numeric characters
     
     console.log("Cleaned account number:", customAccountNumber);
     
-    if (customAccountNumber.length < 4 || customAccountNumber.length > 12) {
+    if (!customAccountNumber || customAccountNumber.length < 4 || customAccountNumber.length > 12) {
       return res.status(400).json({ message: "Account number must be between 4 and 12 digits" });
     }
 
     const accountNumInt = parseInt(customAccountNumber, 10);
-    if (isNaN(accountNumInt)) {
+    if (isNaN(accountNumInt) || accountNumInt <= 0) {
       return res.status(400).json({ message: "Invalid account number format" });
     }
 
@@ -167,6 +183,7 @@ app.post("/register", (req, res) => {
         }
       );
     });
+    return; // IMPORTANT: Return here to prevent auto-generation
   } else {
     // Auto-generate 12-digit account number if not provided
     console.log("No account number provided, auto-generating...");

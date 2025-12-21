@@ -374,14 +374,16 @@
         };
 
         // If account number is provided, include it in the request (use cleaned version)
+        // Only add account_number to request if it exists - don't send null or empty
         if (cleanAccountNumber && cleanAccountNumber.length > 0) {
-          requestBody.account_number = cleanAccountNumber;
-          console.log("Sending custom account number:", cleanAccountNumber);
+          requestBody.account_number = String(cleanAccountNumber); // Ensure it's a string
+          console.log("Sending custom account number:", cleanAccountNumber, "Type:", typeof cleanAccountNumber);
         } else {
           console.log("No account number provided, will auto-generate");
+          // Don't include account_number in request body at all if not provided
         }
 
-        console.log("Request body:", JSON.stringify(requestBody));
+        console.log("Request body:", JSON.stringify(requestBody, null, 2));
 
         const response = await fetch("http://localhost:5000/register", {
           method: "POST",
