@@ -398,25 +398,33 @@
           email: null
         };
 
-        // If account number is provided, include it in the request (use cleaned version)
-        // Only add account_number to request if it exists - don't send null or empty
+        // Account number is REQUIRED - must be included in request
+        if (!cleanAccountNumber || cleanAccountNumber.length === 0) {
+          const msg = storedLang === 'hi'
+            ? "कृपया खाता संख्या दर्ज करें"
+            : storedLang === 'kn'
+            ? "ದಯವಿಟ್ಟು ಖಾತೆ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ"
+            : "Please enter account number";
+          speak(msg, storedLang);
+          alert(msg);
+          document.getElementById("accountNumber").focus();
+          return;
+        }
+
+        // ALWAYS include account_number in request body (it's required)
+        requestBody.account_number = String(cleanAccountNumber); // Ensure it's a string
+        
         console.log("=== PREPARING REQUEST BODY ===");
         console.log("cleanAccountNumber value:", cleanAccountNumber);
         console.log("cleanAccountNumber type:", typeof cleanAccountNumber);
-        console.log("cleanAccountNumber length:", cleanAccountNumber ? cleanAccountNumber.length : 0);
-        
-        if (cleanAccountNumber && cleanAccountNumber.length > 0) {
-          requestBody.account_number = String(cleanAccountNumber); // Ensure it's a string
-          console.log("✅ ADDING account_number to request body:", requestBody.account_number);
-        } else {
-          console.log("⚠️ NOT adding account_number to request body - will auto-generate");
-          // Don't include account_number in request body at all if not provided
-        }
+        console.log("cleanAccountNumber length:", cleanAccountNumber.length);
+        console.log("✅ ADDING account_number to request body:", requestBody.account_number);
 
         console.log("=== FINAL REQUEST BODY ===");
         console.log("Request body:", JSON.stringify(requestBody, null, 2));
         console.log("Has account_number key?", 'account_number' in requestBody);
         console.log("account_number value in requestBody:", requestBody.account_number);
+        console.log("account_number type in requestBody:", typeof requestBody.account_number);
 
         const response = await fetch("http://localhost:5000/register", {
           method: "POST",
