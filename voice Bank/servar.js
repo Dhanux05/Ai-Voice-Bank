@@ -128,11 +128,11 @@ app.post("/register", (req, res) => {
 
   const balance = initial_balance ? parseFloat(initial_balance) : 0;
 
-  console.log("=== PROCESSING ACCOUNT NUMBER ===");
-  console.log("Account number received:", account_number);
+  console.log("=== PROCESSING USER PROVIDED ACCOUNT NUMBER ===");
+  console.log("Account number received from user:", account_number);
   console.log("Account number type:", typeof account_number);
   
-  // Clean and validate the account number
+  // Clean and validate the account number provided by user
   const accountNumberStr = String(account_number).trim().replace(/\D/g, ''); // Remove non-numeric characters
   
   console.log("Cleaned account number:", accountNumberStr);
@@ -150,7 +150,8 @@ app.post("/register", (req, res) => {
     return res.status(400).json({ message: "Invalid account number format" });
   }
 
-  console.log("✅ Using account number:", accountNumInt);
+  console.log("✅ Using USER PROVIDED account number:", accountNumInt);
+  console.log("⚠️ NO AUTO-GENERATION - Using exactly what user provided");
 
   // Check if account number already exists
   db.get("SELECT account_number FROM accounts WHERE account_number = ?", [accountNumInt], (err, row) => {
