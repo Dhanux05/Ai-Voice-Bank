@@ -116,134 +116,86 @@ app.post("/register", (req, res) => {
     return res.status(400).json({ message: "Missing required fields" });
   }
 
+  // Account number is now required
+  if (!account_number || account_number === '' || String(account_number).trim() === '') {
+    return res.status(400).json({ message: "Account number is required" });
+  }
+
   if (pin.length !== 4 || !/^\d+$/.test(pin)) {
     return res.status(400).json({ message: "PIN must be 4 digits" });
   }
 
   const balance = initial_balance ? parseFloat(initial_balance) : 0;
 
-  // Check if account number is provided - be very explicit
-  // First, check if it exists in the request body at all
-  const accountNumberExists = 'account_number' in req.body;
-  const accountNumberValue = req.body.account_number;
-  
-  // Convert to string and check if it's a valid non-empty value
-  const accountNumberStr = accountNumberValue !== undefined && accountNumberValue !== null 
-    ? String(accountNumberValue).trim() 
-    : '';
-  
-  const hasAccountNumber = accountNumberStr !== '' && accountNumberStr.length > 0;
-
-  console.log("=== ACCOUNT NUMBER DETECTION ===");
-  console.log("accountNumberExists in body:", accountNumberExists);
-  console.log("accountNumberValue:", accountNumberValue);
-  console.log("accountNumberStr:", accountNumberStr);
-  console.log("hasAccountNumber:", hasAccountNumber);
-  console.log("Full check:", {
-    account_number,
-    accountNumberExists,
-    accountNumberValue,
-    accountNumberStr,
-    hasAccountNumber,
-    type: typeof account_number,
-    isUndefined: account_number === undefined,
-    isNull: account_number === null,
-    isEmpty: account_number === ''
-  });
-
-  // If account number is provided, validate and use it
-  if (hasAccountNumber) {
-    console.log("✅ ENTERING CUSTOM ACCOUNT NUMBER PATH");
-    console.log("Custom account number received:", account_number, "Type:", typeof account_number);
-    const customAccountNumber = String(account_number).trim().replace(/\D/g, ''); // Remove non-numeric characters
-    
-    console.log("Cleaned account number:", customAccountNumber);
-    
-    console.log("Validating account number length:", customAccountNumber.length);
-    if (!customAccountNumber || customAccountNumber.length < 4 || customAccountNumber.length > 12) {
-      console.log("ERROR: Account number validation failed - length:", customAccountNumber.length);
-      return res.status(400).json({ message: "Account number must be between 4 and 12 digits" });
-    }
-    console.log("✅ Account number length validation passed");
-
-    const accountNumInt = parseInt(customAccountNumber, 10);
-    console.log("Parsed account number integer:", accountNumInt);
-    
-    if (isNaN(accountNumInt) || accountNumInt <= 0) {
-      console.log("ERROR: Invalid account number format - isNaN:", isNaN(accountNumInt), "<= 0:", accountNumInt <= 0);
-      return res.status(400).json({ message: "Invalid account number format" });
-    }
-
-    console.log("✅ Using custom account number:", accountNumInt);
-
-    // Check if account number already exists
-    db.get("SELECT account_number FROM accounts WHERE account_number = ?", [accountNumInt], (err, row) => {
-      if (err) return res.status(500).json({ message: "Database error" });
-      
-      if (row) {
-        return res.status(400).json({ message: "Account number already exists. Please choose a different one." });
-      }
-
-      // Use the custom account number
-      db.run(
-        `INSERT INTO accounts (account_number, full_name, branch_name, balance, pin, email, phone)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [accountNumInt, full_name, branch_name, balance, pin, email || null, phone || null],
-        (err2) => {
-          if (err2) {
-            if (err2.message.includes('UNIQUE constraint')) {
-              return res.status(400).json({ message: "Account number already exists. Please choose a different one." });
-            }
-            return res.status(500).json({ message: "Registration failed" });
-          }
-
-          res.json({
-            message: "✅ Registration successful",
-            account_number: accountNumInt,
-            full_name: full_name,
-            branch_name: branch_name,
-            balance: balance
-          });
-        }
-      );
-    });
-    console.log("✅ Custom account number path - returning to prevent auto-generation");
-    return; // IMPORTANT: Return here to prevent auto-generation
-  } else {
-    // Auto-generate 12-digit account number if not provided
-    console.log("⚠️⚠️⚠️ WARNING: No account number detected, auto-generating...");
-    console.log("⚠️ This should not happen if account_number was sent in request!");
-    console.log("⚠️ Request body keys:", Object.keys(req.body));
-    console.log("⚠️ account_number value:", req.body.account_number);
-    console.log("⚠️ accountNumberExists:", accountNumberExists);
-    console.log("⚠️ accountNumberValue:", accountNumberValue);
-    console.log("⚠️ accountNumberStr:", accountNumberStr);
-    db.get("SELECT MAX(account_number) as max_acc FROM accounts", (err, row) => {
-      if (err) return res.status(500).json({ message: "Database error" });
-
-      // Start from 100000000000 (12 digits) or increment from max
-      const baseAccount = 100000000000; // 12-digit starting number
-      const maxAcc = row.max_acc || (baseAccount - 1);
-      const newAccountNumber = maxAcc >= baseAccount ? maxAcc + 1 : baseAccount;
-
-      db.run(
-        `INSERT INTO accounts (account_number, full_name, branch_name, balance, pin, email, phone)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [newAccountNumber, full_name, branch_name, balance, pin, email || null, phone || null],
-        (err2) => {
-          if (err2) return res.status(500).json({ message: "Registration failed" });
-
-          res.json({
-            message: "✅ Registration successful",
-            account_number: newAccountNumber,
-            full_name: full_name,
-            branch_name: branch_name,
-            balance: balance
-          });
-        }
-      );
-    });
+  // Account number is now REQUIRED - validate it
+  if (!account_number || account_number === '' || String(account_number).trim() === '') {
+    console.log("ERROR: Account number is required but not provided");
+    return res.status(400).json({ message: "Account number is required" });
   }
+
+  console.log("=== PROCESSING ACCOUNT NUMBER ===");
+  console.log("Account number received:", account_number);
+  console.log("Account number type:", typeof account_number);
+  
+  // Clean and validate the account number
+  const accountNumberStr = String(account_number).trim().replace(/\D/g, ''); // Remove non-numeric characters
+  
+  console.log("Cleaned account number:", accountNumberStr);
+  
+  if (!accountNumberStr || accountNumberStr.length < 4 || accountNumberStr.length > 12) {
+    console.log("ERROR: Account number validation failed - length:", accountNumberStr.length);
+    return res.status(400).json({ message: "Account number must be between 4 and 12 digits" });
+  }
+  
+  const accountNumInt = parseInt(accountNumberStr, 10);
+  console.log("Parsed account number integer:", accountNumInt);
+  
+  if (isNaN(accountNumInt) || accountNumInt <= 0) {
+    console.log("ERROR: Invalid account number format - isNaN:", isNaN(accountNumInt), "<= 0:", accountNumInt <= 0);
+    return res.status(400).json({ message: "Invalid account number format" });
+  }
+
+  console.log("✅ Using account number:", accountNumInt);
+
+  // Check if account number already exists
+  db.get("SELECT account_number FROM accounts WHERE account_number = ?", [accountNumInt], (err, row) => {
+    if (err) {
+      console.log("Database error checking account number:", err);
+      return res.status(500).json({ message: "Database error" });
+    }
+    
+    if (row) {
+      console.log("Account number already exists:", accountNumInt);
+      return res.status(400).json({ message: "Account number already exists. Please choose a different one." });
+    }
+
+    console.log("Account number is available, creating account...");
+
+    // Use the provided account number
+    db.run(
+      `INSERT INTO accounts (account_number, full_name, branch_name, balance, pin, email, phone)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [accountNumInt, full_name, branch_name, balance, pin, email || null, phone || null],
+      (err2) => {
+        if (err2) {
+          console.log("Database error inserting account:", err2);
+          if (err2.message.includes('UNIQUE constraint')) {
+            return res.status(400).json({ message: "Account number already exists. Please choose a different one." });
+          }
+          return res.status(500).json({ message: "Registration failed" });
+        }
+
+        console.log("✅ Account created successfully with account number:", accountNumInt);
+        res.json({
+          message: "✅ Registration successful",
+          account_number: accountNumInt,
+          full_name: full_name,
+          branch_name: branch_name,
+          balance: balance
+        });
+      }
+    );
+  });
 });
 
 // Verify PIN endpoint

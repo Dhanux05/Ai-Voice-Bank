@@ -107,7 +107,7 @@
       <form id="registerForm">
         <input type="text" class="register-input" id="fullName" placeholder="Full Name" required>
         <input type="tel" class="register-input" id="phone" placeholder="Mobile Number" pattern="[0-9]{10}" maxlength="10">
-        <input type="text" class="register-input" id="accountNumber" placeholder="Account Number (Optional - Auto-generated if empty)" maxlength="12" pattern="[0-9]{4,12}">
+        <input type="text" class="register-input" id="accountNumber" placeholder="Account Number (Enter 4-12 digits)" maxlength="12" pattern="[0-9]{4,12}" required>
         <input type="password" class="register-input" id="pin" placeholder="4-digit PIN" maxlength="4" pattern="[0-9]{4}" required>
         
         <button type="submit" class="register-btn">Register</button>
@@ -146,7 +146,7 @@
         title: "Register",
         namePlaceholder: "Full Name",
         phonePlaceholder: "Mobile Number",
-        accountPlaceholder: "Account Number (Optional - Enter 4-12 digits or leave empty for auto-generation)",
+        accountPlaceholder: "Account Number (Enter 4-12 digits)",
         pinPlaceholder: "4-digit PIN",
         button: "Register",
         back: "Back to Dashboard",
@@ -158,7 +158,7 @@
         title: "पंजीकरण",
         namePlaceholder: "पूरा नाम",
         phonePlaceholder: "मोबाइल नंबर",
-        accountPlaceholder: "खाता संख्या (वैकल्पिक - 4-12 अंक दर्ज करें या खाली छोड़ें)",
+        accountPlaceholder: "खाता संख्या (4-12 अंक दर्ज करें)",
         pinPlaceholder: "4 अंकों का PIN",
         button: "पंजीकरण करें",
         back: "डैशबोर्ड पर वापस जाएँ",
@@ -170,7 +170,7 @@
         title: "ನೋಂದಣಿ",
         namePlaceholder: "ಪೂರ್ಣ ಹೆಸರು",
         phonePlaceholder: "ಮೊಬೈಲ್ ಸಂಖ್ಯೆ",
-        accountPlaceholder: "ಖಾತೆ ಸಂಖ್ಯೆ (ಐಚ್ಛಿಕ - 4-12 ಅಂಕೆಗಳನ್ನು ನಮೂದಿಸಿ ಅಥವಾ ಖಾಲಿ ಬಿಡಿ)",
+        accountPlaceholder: "ಖಾತೆ ಸಂಖ್ಯೆ (4-12 ಅಂಕೆಗಳನ್ನು ನಮೂದಿಸಿ)",
         pinPlaceholder: "4 ಅಂಕೆಗಳ PIN",
         button: "ನೋಂದಣಿ ಮಾಡಿ",
         back: "ಡ್ಯಾಶ್ಬೋರ್ಡ್ಗೆ ಹಿಂತಿರುಗಿ",
@@ -342,6 +342,19 @@
 
       if (!full_name || !pin) {
         speak("Please enter full name and PIN");
+        return;
+      }
+
+      // Account number is now required
+      if (!account_number || account_number.trim() === '') {
+        const msg = storedLang === 'hi'
+          ? "कृपया खाता संख्या दर्ज करें"
+          : storedLang === 'kn'
+          ? "ದಯವಿಟ್ಟು ಖಾತೆ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ"
+          : "Please enter account number";
+        speak(msg, storedLang);
+        alert(msg);
+        document.getElementById("accountNumber").focus();
         return;
       }
 
