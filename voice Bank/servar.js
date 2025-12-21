@@ -166,22 +166,25 @@ app.post("/register", (req, res) => {
     }
 
     console.log("Account number is available, creating account...");
+    console.log("🔒 FINAL CHECK: About to insert account with number:", accountNumInt);
+    console.log("🔒 This is the EXACT number provided by user - NO AUTO-GENERATION");
 
-    // Use the provided account number
+    // Use the provided account number - NO AUTO-GENERATION
     db.run(
       `INSERT INTO accounts (account_number, full_name, branch_name, balance, pin, email, phone)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [accountNumInt, full_name, branch_name, balance, pin, email || null, phone || null],
       (err2) => {
         if (err2) {
-          console.log("Database error inserting account:", err2);
+          console.log("❌ Database error inserting account:", err2);
           if (err2.message.includes('UNIQUE constraint')) {
             return res.status(400).json({ message: "Account number already exists. Please choose a different one." });
           }
           return res.status(500).json({ message: "Registration failed" });
         }
 
-        console.log("✅ Account created successfully with account number:", accountNumInt);
+        console.log("✅✅✅ Account created successfully with USER PROVIDED account number:", accountNumInt);
+        console.log("✅✅✅ NO AUTO-GENERATION WAS USED - This is exactly what user entered");
         res.json({
           message: "✅ Registration successful",
           account_number: accountNumInt,
