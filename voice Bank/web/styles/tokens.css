@@ -1,0 +1,45 @@
+/* Design tokens - AI Voice Banking. Calm light surfaces, deep bottle green, one brass accent. */
+:root {
+  --bg: #f2f4f3;
+  --bg-alt: #e6ebe9;
+  --surface: #ffffff;
+  --surface-2: #f8faf9;
+  --ink: #10231e;
+  --ink-2: #2c423c;
+  --muted: #586a64;
+  --line: #dde4e1;
+  --line-strong: #bcc9c4;
+
+  --accent: #0b5d4b;
+  --accent-hover: #084738;
+  --accent-ink: #0b5d4b;
+  --accent-soft: #e2f0ec;
+  --spark: #b07d2b;
+  --spark-soft: #f4ead6;
+  --on-accent: #ffffff;
+
+  --btn-bg: #0b5d4b;
+  --btn-bg-hover: #084738;
+  --btn-ink: #ffffff;
+
+  --ok: #0f7d56;
+  --ok-soft: #e0f5ec;
+  --warn: #8f5200;
+  --warn-soft: #fff0cf;
+  --danger: #c5322a;
+  --danger-soft: #fde9e7;
+
+  --radius: 14px;
+  --radius-lg: 22px;
+  --radius-xl: 30px;
+  --shadow-1: 0 1px 2px rgba(16, 35, 30, 0.05);
+  --shadow-2: 0 14px 36px rgba(11, 93, 75, 0.14), 0 2px 6px rgba(16, 35, 30, 0.06);
+  --ring: 0 0 0 4px rgba(11, 93, 75, 0.18);
+
+  --font-sans: "Figtree", "Noto Sans Kannada", "Noto Sans Devanagari", system-ui, -apple-system, "Segoe UI", "Nirmala UI", Roboto, sans-serif;
+  --font-display: "Bricolage Grotesque", "Noto Sans Kannada", "Noto Sans Devanagari", "Figtree", system-ui, "Nirmala UI", sans-serif;
+
+  --t-fast: 150ms;
+  --t-med: 240ms;
+  color-scheme: light;
+}

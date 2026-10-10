@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Register</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;600;700&family=Noto+Sans+Kannada:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles/tokens.css">
+<link rel="stylesheet" href="styles/app.css">
+</head>
+<body>
+<header id="topbar"></header>
+<main class="page" id="main">
+<div id="v-form">
+<a class="crumb" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg><span data-i18n="home"></span></a><div class="head"><p class="eyebrow" data-i18n="reg.eyebrow"></p><h1 class="display" data-i18n="reg.title"></h1><p class="lede" data-i18n="reg.sub"></p></div>
+<form class="card" id="form" novalidate>
+<label class="field"><span class="field__label" data-i18n="f.name"></span><input class="input" id="f-name" autocomplete="name" maxlength="60"><span class="field__error" id="e-name" role="alert"></span></label>
+<label class="field"><span class="field__label" data-i18n="f.phone"></span><input class="input num" id="f-phone" inputmode="numeric" autocomplete="tel-national" maxlength="10"><span class="field__hint" data-i18n="f.phone.h"></span><span class="field__error" id="e-phone" role="alert"></span></label>
+<div class="grid2" style="margin-top:18px">
+<label class="field"><span class="field__label" data-i18n="f.pin"></span><input class="input input--pin" id="f-pin" type="password" inputmode="numeric" autocomplete="new-password" maxlength="4"><span class="field__error" id="e-pin" role="alert"></span></label>
+<label class="field"><span class="field__label" data-i18n="f.pin2"></span><input class="input input--pin" id="f-pin2" type="password" inputmode="numeric" autocomplete="new-password" maxlength="4"><span class="field__error" id="e-pin2" role="alert"></span></label>
+</div>
+<div class="actions actions--row"><button class="btn btn--ghost" id="cancel" type="button" data-i18n="cancel"></button><button class="btn btn--primary" id="submit" type="submit" data-i18n="reg.submit"></button></div>
+</form>
+</div>
+<div id="v-ok" hidden class="card center"><div class="seal" style="margin:0 auto 14px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+<h1 class="card__title" data-i18n="reg.ok"></h1><p class="card__sub" id="ok-sub"></p>
+<div class="actions"><button class="btn btn--primary" id="to-login" type="button" data-i18n="login.submit"></button></div></div>
+
+</main>
+<script src="js/i18n.js"></script><script src="js/numwords.js"></script><script src="js/api.js"></script><script src="js/voice.js"></script><script src="js/ui.js"></script>
+<script src="js/pages/register.js"></script>
+</body>
+</html>

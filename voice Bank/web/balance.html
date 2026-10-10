@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Balance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;600;700&family=Noto+Sans+Kannada:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles/tokens.css">
+<link rel="stylesheet" href="styles/app.css">
+</head>
+<body>
+<header id="topbar"></header>
+<main class="page page--mid" id="main">
+<a class="crumb" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg><span data-i18n="home"></span></a><div class="head"><p class="eyebrow" data-i18n="bal.eyebrow"></p><h1 class="display" data-i18n="bal.title"></h1></div>
+<section class="acct" aria-live="polite">
+<div class="acct__label" data-i18n="bal.available"></div>
+<div class="acct__amount num" id="amount">—</div>
+<div class="acct__words" id="words"></div>
+<dl class="acct__meta">
+<div><dt data-i18n="bal.holder"></dt><dd id="holder">—</dd></div>
+<div><dt data-i18n="bal.acc"></dt><dd class="num" id="accno">—</dd></div>
+<div><dt data-i18n="bal.phone"></dt><dd class="num" id="phone">—</dd></div>
+<div><dt data-i18n="bal.branch"></dt><dd id="branch">—</dd></div>
+</dl></section>
+<h2 class="section-title" data-i18n="bal.history"></h2>
+<ul class="txs" id="list"></ul>
+<div class="empty card" id="empty" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3z"/><path d="M9 8h6M9 12h6"/></svg><b data-i18n="bal.empty"></b><span data-i18n="bal.empty.s"></span></div>
+<div class="actions"><button class="btn btn--ghost" id="more" type="button" hidden data-i18n="more"></button></div>
+</main>
+<script src="js/i18n.js"></script><script src="js/numwords.js"></script><script src="js/api.js"></script><script src="js/voice.js"></script><script src="js/ui.js"></script>
+<script src="js/pages/balance.js"></script>
+</body>
+</html>

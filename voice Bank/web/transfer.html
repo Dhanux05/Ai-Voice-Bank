@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>tr.eyebrow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;600;700&family=Noto+Sans+Kannada:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles/tokens.css">
+<link rel="stylesheet" href="styles/app.css">
+</head>
+<body>
+<header id="topbar"></header>
+<main class="page" id="main">
+<a class="crumb" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg><span data-i18n="home"></span></a><div class="head"><p class="eyebrow" data-i18n="tr.eyebrow"></p><h1 class="display" data-i18n="tr.title"></h1><p class="lede" data-i18n="tr.sub"></p></div>
+<form class="card" id="form" novalidate>
+<label class="field"><span class="field__label" data-i18n="f.recipient"></span><input class="input num" id="f-phone" inputmode="numeric" maxlength="10" autocomplete="off"><span class="field__hint" data-i18n="f.phone.h"></span><span class="field__error" id="e-phone" role="alert"></span></label><div style="height:18px"></div>
+<label class="field"><span class="field__label" data-i18n="f.amount"></span><div class="input-group"><span class="prefix">₹</span><input class="input num" id="f-amount" inputmode="decimal" autocomplete="off" placeholder="0.00"></div><span class="field__error" id="e-amount" role="alert"></span></label>
+<div class="actions"><button class="btn btn--primary btn--block" id="submit" type="submit" data-i18n="tr.submit"></button></div>
+</form>
+</main>
+<script src="js/i18n.js"></script><script src="js/numwords.js"></script><script src="js/api.js"></script><script src="js/voice.js"></script><script src="js/ui.js"></script>
+<script src="js/txflow.js"></script><script src="js/pages/transfer.js"></script>
+</body>
+</html>

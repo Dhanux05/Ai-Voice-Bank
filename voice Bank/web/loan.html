@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Loans</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;600;700&family=Noto+Sans+Kannada:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles/tokens.css">
+<link rel="stylesheet" href="styles/app.css">
+</head>
+<body>
+<header id="topbar"></header>
+<main class="page" id="main">
+<a class="crumb" href="index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg><span data-i18n="home"></span></a><div class="head"><p class="eyebrow" data-i18n="loan.eyebrow"></p><h1 class="display" data-i18n="loan.title"></h1><p class="lede" data-i18n="loan.sub"></p></div>
+<div class="tabs" role="tablist"><button type="button" role="tab" data-tab="apply" aria-selected="true" data-i18n="loan.tab.apply"></button><button type="button" role="tab" data-tab="mine" aria-selected="false" data-i18n="loan.tab.mine"></button></div>
+<section id="tab-apply">
+<form class="card" id="form" novalidate>
+<label class="field"><span class="field__label" data-i18n="f.loantype"></span><select class="select" id="f-type"></select><span class="field__hint" id="limits"></span></label>
+<label class="field"><span class="field__label" data-i18n="f.amount"></span><div class="input-group"><span class="prefix">₹</span><input class="input num" id="f-amount" inputmode="decimal" autocomplete="off"></div></label>
+<label class="field"><span class="field__label" data-i18n="f.tenure"></span><input class="input num" id="f-tenure" inputmode="numeric" autocomplete="off"></label>
+<div class="emi mt-2" id="emi-box" hidden>
+<div class="emi__label" data-i18n="loan.emi"></div><div class="emi__value num" id="emi">—</div>
+<dl class="kv" style="margin-top:10px"><dt data-i18n="loan.rate"></dt><dd class="num" id="rate">—</dd><dt data-i18n="loan.totalint"></dt><dd class="num" id="tint">—</dd><dt data-i18n="loan.totalpay"></dt><dd class="num" id="tpay">—</dd></dl></div>
+<span class="field__error" id="e-loan" role="alert"></span>
+<div class="actions"><button class="btn btn--primary btn--block" id="submit" type="submit" data-i18n="loan.review"></button></div>
+</form></section>
+<section id="tab-mine" hidden><div id="loans"></div></section>
+</main>
+<script src="js/i18n.js"></script><script src="js/numwords.js"></script><script src="js/api.js"></script><script src="js/voice.js"></script><script src="js/ui.js"></script>
+<script src="js/txflow.js"></script><script src="js/pages/loan.js"></script>
+</body>
+</html>
